@@ -8,11 +8,16 @@ import BehavioralInsights from './components/BehavioralInsights';
 import LegalAssistant from './components/LegalAssistant';
 import UserProfile from './components/UserProfile';
 import DocumentLibrary from './components/DocumentLibrary';
+import Auth from './components/Auth';
 import { Report, UserProfile as UserProfileType, StoredDocument } from './types';
+import { supabase } from './services/supabase';
+import { profileService, reportService, documentService } from './services/database';
 
 type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents';
 
 const App: React.FC = () => {
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+    const [isInitializing, setIsInitializing] = useState(true);
     const [view, setView] = useState<View>('new_report');
     const [reports, setReports] = useState<Report[]>([]);
     const [documents, setDocuments] = useState<StoredDocument[]>([]);
@@ -23,67 +28,117 @@ const App: React.FC = () => {
     const [initialLegalQuery, setInitialLegalQuery] = useState<string | null>(null);
     const [activeAnalysisContext, setActiveAnalysisContext] = useState<string | null>(null);
 
-
-    useEffect(() => {
+    const loadUserData = useCallback(async () => {
         try {
-            const savedProfile = localStorage.getItem('userProfile');
-            if (savedProfile) {
-                setUserProfile(JSON.parse(savedProfile));
-            }
-            const savedDocuments = localStorage.getItem('documents');
-            if (savedDocuments) {
-                setDocuments(JSON.parse(savedDocuments));
-            }
+            const [profile, allReports, allDocuments] = await Promise.all([
+                profileService.get(),
+                reportService.getAll(),
+                documentService.getAll(),
+            ]);
+
+            setUserProfile(profile);
+            setReports(allReports);
+            setDocuments(allDocuments);
         } catch (error) {
-            console.error("Failed to load user profile or documents from localStorage", error);
+            console.error('Failed to load user data:', error);
         }
     }, []);
 
-    const handleProfileSave = (profile: UserProfileType) => {
+    useEffect(() => {
+        const initializeAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            setIsAuthenticated(!!session);
+
+            if (session) {
+                await loadUserData();
+            }
+
+            setIsInitializing(false);
+        };
+
+        initializeAuth();
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            (async () => {
+                setIsAuthenticated(!!session);
+
+                if (session) {
+                    await loadUserData();
+                } else {
+                    setReports([]);
+                    setDocuments([]);
+                    setUserProfile(null);
+                }
+            })();
+        });
+
+        return () => {
+            subscription.unsubscribe();
+        };
+    }, [loadUserData]);
+
+    const handleAuthSuccess = async () => {
+        setIsAuthenticated(true);
+        await loadUserData();
+    };
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        setIsAuthenticated(false);
+        setReports([]);
+        setDocuments([]);
+        setUserProfile(null);
+        setView('new_report');
+    };
+
+    const handleProfileSave = async (profile: UserProfileType) => {
         try {
-            localStorage.setItem('userProfile', JSON.stringify(profile));
+            await profileService.upsert(profile);
             setUserProfile(profile);
             setView('timeline');
         } catch (error) {
-            console.error("Failed to save user profile to localStorage", error);
+            console.error('Failed to save user profile:', error);
         }
     };
 
-    const handleReportGenerated = (newReport: Report) => {
-        setReports(prev => [...prev, newReport]);
-        setView('timeline');
-    };
-    
-    const handleAddDocument = (newDocument: StoredDocument) => {
-        const updatedDocuments = [...documents, newDocument];
-        setDocuments(updatedDocuments);
+    const handleReportGenerated = async (newReport: Report) => {
         try {
-            localStorage.setItem('documents', JSON.stringify(updatedDocuments));
+            const createdReport = await reportService.create(newReport);
+            setReports(prev => [createdReport, ...prev]);
+            setView('timeline');
         } catch (error) {
-            console.error("Failed to save documents to localStorage", error);
+            console.error('Failed to save report:', error);
         }
     };
 
-    const handleDeleteDocument = (documentId: string) => {
-        const updatedDocuments = documents.filter(doc => doc.id !== documentId);
-        setDocuments(updatedDocuments);
+    const handleAddDocument = async (newDocument: StoredDocument) => {
         try {
-            localStorage.setItem('documents', JSON.stringify(updatedDocuments));
+            const createdDocument = await documentService.create(newDocument);
+            setDocuments(prev => [createdDocument, ...prev]);
         } catch (error) {
-            console.error("Failed to save documents to localStorage", error);
+            console.error('Failed to save document:', error);
+        }
+    };
+
+    const handleDeleteDocument = async (documentId: string) => {
+        try {
+            await documentService.delete(documentId);
+            setDocuments(prev => prev.filter(doc => doc.id !== documentId));
+        } catch (error) {
+            console.error('Failed to delete document:', error);
         }
     };
 
     const handleViewChange = useCallback((newView: View) => {
         setView(newView);
-        setIsSidebarOpen(false); // Close sidebar on view change on mobile
+        setIsSidebarOpen(false);
     }, []);
 
     const handleDiscussIncident = (reportId: string) => {
         const reportToDiscuss = reports.find(r => r.id === reportId);
         if (reportToDiscuss) {
             setActiveReportContext(reportToDiscuss);
-            setActiveAnalysisContext(null); // Clear analysis context
+            setActiveAnalysisContext(null);
             setView('assistant');
         }
     };
@@ -95,14 +150,14 @@ const App: React.FC = () => {
             setView('insights');
         }
     };
-    
+
     const handleGenerateDraftFromInsight = (analysisText: string, motionType: string) => {
         const query = `Based on the provided behavioral analysis, please draft a "${motionType}".`;
         setActiveAnalysisContext(analysisText);
-        setActiveReportContext(null); // Clear report context
+        setActiveReportContext(null);
         setInitialLegalQuery(query);
         setView('assistant');
-        setActiveInsightContext(null); // clear insight context
+        setActiveInsightContext(null);
     };
 
     const handleBackToTimeline = () => {
@@ -117,22 +172,22 @@ const App: React.FC = () => {
             case 'patterns':
                 return <PatternAnalysis reports={reports} />;
             case 'insights':
-                return <BehavioralInsights 
-                            reports={reports} 
+                return <BehavioralInsights
+                            reports={reports}
                             userProfile={userProfile}
                             activeInsightContext={activeInsightContext}
                             onBackToTimeline={handleBackToTimeline}
                             onGenerateDraft={handleGenerateDraftFromInsight}
                         />;
             case 'documents':
-                return <DocumentLibrary 
+                return <DocumentLibrary
                             documents={documents}
                             onAddDocument={handleAddDocument}
                             onDeleteDocument={handleDeleteDocument}
                         />;
             case 'assistant':
-                return <LegalAssistant 
-                            reports={reports} 
+                return <LegalAssistant
+                            reports={reports}
                             documents={documents}
                             userProfile={userProfile}
                             activeReportContext={activeReportContext}
@@ -143,40 +198,56 @@ const App: React.FC = () => {
                             clearActiveAnalysisContext={() => setActiveAnalysisContext(null)}
                         />;
             case 'profile':
-                return <UserProfile 
-                            onSave={handleProfileSave} 
+                return <UserProfile
+                            onSave={handleProfileSave}
                             onCancel={() => handleViewChange('timeline')}
                             currentProfile={userProfile}
                         />;
             case 'timeline':
             default:
-                return <IncidentTimeline 
-                            reports={reports} 
+                return <IncidentTimeline
+                            reports={reports}
                             onDiscussIncident={handleDiscussIncident}
-                            onAnalyzeIncident={handleAnalyzeIncident} 
+                            onAnalyzeIncident={handleAnalyzeIncident}
                         />;
         }
     };
+
+    if (isInitializing) {
+        return (
+            <div className="h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="w-16 h-16 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    if (!isAuthenticated) {
+        return <Auth onAuthSuccess={handleAuthSuccess} />;
+    }
 
     const isChatView = view === 'new_report' || view === 'assistant';
 
     return (
         <div className="h-screen bg-gray-50 flex flex-col">
-            <Header 
-                onMenuClick={() => setIsSidebarOpen(prev => !prev)} 
+            <Header
+                onMenuClick={() => setIsSidebarOpen(prev => !prev)}
                 onProfileClick={() => handleViewChange('profile')}
+                onSignOut={handleSignOut}
             />
             <div className="flex flex-1 pt-16 overflow-hidden">
                  {isSidebarOpen && (
-                    <div 
-                        className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+                    <div
+                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
                         onClick={() => setIsSidebarOpen(false)}
                         aria-hidden="true"
                     ></div>
                 )}
-                <Sidebar 
-                    activeView={view} 
-                    onViewChange={handleViewChange} 
+                <Sidebar
+                    activeView={view}
+                    onViewChange={handleViewChange}
                     reportCount={reports.length}
                     isOpen={isSidebarOpen}
                 />
