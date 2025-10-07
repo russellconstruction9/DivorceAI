@@ -5,7 +5,7 @@ import { SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS } from '../constants/behavioralP
 import { SYSTEM_PROMPT_LEGAL_ASSISTANT, SYSTEM_PROMPT_LEGAL_ANALYSIS_SUGGESTION, SYSTEM_PROMPT_DOCUMENT_ANALYSIS, SYSTEM_PROMPT_DOCUMENT_REDRAFT } from '../constants/legalPrompts';
 import { INDIANA_LEGAL_CONTEXT } from "../constants/legalContext";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
 const formatUserProfileContext = (profile: UserProfile | null): string => {
     if (!profile || !profile.name) return '';
