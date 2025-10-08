@@ -69,22 +69,3 @@ export interface DraftedDocument {
     relatedReportId?: string;
     createdAt: string;
 }
-
-export enum EventType {
-    REPORT = 'report',
-    CUSTOM = 'custom',
-    APPOINTMENT = 'appointment',
-    DEADLINE = 'deadline',
-    OTHER = 'other',
-}
-
-export interface CalendarEvent {
-    id: string;
-    title: string;
-    description: string;
-    eventDate: string;
-    eventType: EventType;
-    relatedReportId?: string;
-    color: string;
-    createdAt: string;
-}

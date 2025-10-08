@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Report, StoredDocument, UserProfile, DraftedDocument, CalendarEvent } from '../types';
+import { Report, StoredDocument, UserProfile, DraftedDocument } from '../types';
 
 export interface DbProfile {
   id: string;
@@ -39,19 +39,6 @@ export interface DbDraftedDocument {
   content: string;
   type: string;
   related_report_id: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DbCalendarEvent {
-  id: string;
-  user_id: string;
-  title: string;
-  description: string;
-  event_date: string;
-  event_type: string;
-  related_report_id: string | null;
-  color: string;
   created_at: string;
   updated_at: string;
 }
@@ -270,73 +257,6 @@ export const draftedDocumentService = {
   async delete(id: string): Promise<void> {
     const { error } = await supabase
       .from('drafted_documents')
-      .delete()
-      .eq('id', id);
-
-    if (error) throw error;
-  },
-};
-
-export const calendarEventService = {
-  async getAll(): Promise<CalendarEvent[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('event_date', { ascending: true });
-
-    if (error) throw error;
-
-    return (data || []).map((e: DbCalendarEvent) => ({
-      id: e.id,
-      title: e.title,
-      description: e.description,
-      eventDate: e.event_date,
-      eventType: e.event_type,
-      relatedReportId: e.related_report_id || undefined,
-      color: e.color,
-      createdAt: e.created_at,
-    }));
-  },
-
-  async create(event: Omit<CalendarEvent, 'id' | 'createdAt'>): Promise<CalendarEvent> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Not authenticated');
-
-    const { data, error } = await supabase
-      .from('calendar_events')
-      .insert({
-        user_id: user.id,
-        title: event.title,
-        description: event.description,
-        event_date: event.eventDate,
-        event_type: event.eventType,
-        related_report_id: event.relatedReportId || null,
-        color: event.color,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-
-    return {
-      id: data.id,
-      title: data.title,
-      description: data.description,
-      eventDate: data.event_date,
-      eventType: data.event_type,
-      relatedReportId: data.related_report_id || undefined,
-      color: data.color,
-      createdAt: data.created_at,
-    };
-  },
-
-  async delete(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('calendar_events')
       .delete()
       .eq('id', id);
 
