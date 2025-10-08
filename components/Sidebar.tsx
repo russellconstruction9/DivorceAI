@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpenIcon, ChartBarIcon, LightBulbIcon, PlusIcon, DocumentTextIcon, ScaleIcon, PencilIcon, ChevronDownIcon } from './icons';
 
-type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents';
+type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'drafted_documents';
 
 interface SidebarProps {
     activeView: View;

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Report, UserProfile, StoredDocument, DraftedDocument, DocumentType } from '../types';
 import { getLegalAssistantResponse, getInitialLegalAnalysis, analyzeDocument, redraftDocument } from '../services/geminiService';
-import { PaperAirplaneIcon, SparklesIcon, UserCircleIcon, DocumentTextIcon, LightBulbIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
+import { PaperAirplaneIcon, SparklesIcon, UserCircleIcon, DocumentTextIcon, LightBulbIcon, XMarkIcon, ArrowDownTrayIcon, ScaleIcon } from './icons';
 import MotionPreviewModal from './MotionPreviewModal';
 import ReactMarkdown from 'react-markdown';
 

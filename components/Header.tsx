@@ -38,13 +38,13 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick, onSignOut,
                         </button>
                         <div className="flex items-center gap-2">
                             <svg className="h-9 w-9" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="40" height="40" rx="10" fill="url(#grad1)"/>
                                 <defs>
                                     <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                                        <stop offset="0%" style="stop-color:#0d9488;stop-opacity:1" />
-                                        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+                                        <stop offset="0%" stopColor="#0d9488" stopOpacity="1" />
+                                        <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
                                     </linearGradient>
                                 </defs>
+                                <rect width="40" height="40" rx="10" fill="url(#grad1)"/>
                                 <path d="M20 10L28 16V24L20 30L12 24V16L20 10Z" fill="white" opacity="0.9"/>
                                 <circle cx="20" cy="20" r="3" fill="#0d9488"/>
                             </svg>
