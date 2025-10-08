@@ -180,8 +180,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             <footer className="bg-white border-t border-gray-200 py-8">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                            <img src={logoImg} alt="CustodyX.AI" className="h-8 w-auto" />
+                        <div className="flex items-center gap-2">
+                            <svg className="h-8 w-8" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="40" height="40" rx="8" fill="#1e3a8a"/>
+                                <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" fill="#3b82f6" stroke="#60a5fa" strokeWidth="1.5"/>
+                                <circle cx="20" cy="20" r="4" fill="#dbeafe"/>
+                            </svg>
+                            <span className="text-xl font-bold text-gray-900">CustodyX<span className="text-blue-900">.AI</span></span>
                         </div>
                         <p className="text-sm text-gray-600">
                             Built to help parents protect their rights and their children.
