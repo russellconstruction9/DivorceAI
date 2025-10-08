@@ -17,10 +17,10 @@ const NavItem: React.FC<{
     onClick: () => void;
     disabled?: boolean;
 }> = ({ icon, label, isActive, onClick, disabled }) => {
-    const baseClasses = "flex items-center w-full text-left px-3 py-2 rounded-md text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
-    const activeClasses = "bg-blue-100 text-blue-900 font-semibold";
-    const inactiveClasses = "text-gray-700 hover:bg-gray-100 hover:text-gray-900";
-    const disabledClasses = "text-gray-400 cursor-not-allowed bg-gray-50";
+    const baseClasses = "flex items-center w-full text-left px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2";
+    const activeClasses = "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md";
+    const inactiveClasses = "text-gray-700 hover:bg-gray-50 hover:text-gray-900";
+    const disabledClasses = "text-gray-400 cursor-not-allowed opacity-50";
 
     return (
         <button
@@ -36,9 +36,9 @@ const NavItem: React.FC<{
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, reportCount, isOpen }) => {
     return (
-        <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 p-4 transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 lg:flex-shrink-0`}>
+        <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-100 p-6 shadow-xl transform transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} lg:relative lg:translate-x-0 lg:flex-shrink-0 lg:shadow-none`}>
             <div className="flex flex-col h-full pt-16 lg:pt-0">
-                <nav className="flex-1 space-y-2">
+                <nav className="flex-1 space-y-2 mt-4">
                     <NavItem
                         icon={<PlusIcon />}
                         label="New Report"

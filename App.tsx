@@ -238,7 +238,7 @@ const App: React.FC = () => {
     const isChatView = view === 'new_report' || view === 'assistant';
 
     return (
-        <div className="h-screen bg-gray-50 flex flex-col">
+        <div className="h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex flex-col">
             <Header
                 onMenuClick={() => setIsSidebarOpen(prev => !prev)}
                 onProfileClick={() => handleViewChange('profile')}
@@ -258,7 +258,7 @@ const App: React.FC = () => {
                     reportCount={reports.length}
                     isOpen={isSidebarOpen}
                 />
-                <main className={`flex-1 p-4 sm:p-6 lg:p-8 ${isChatView ? 'flex flex-col' : 'overflow-y-auto'}`}>
+                <main className={`flex-1 p-6 sm:p-8 lg:p-10 ${isChatView ? 'flex flex-col' : 'overflow-y-auto'}`}>
                     <div className={`mx-auto max-w-7xl w-full ${isChatView ? 'flex-1 min-h-0' : ''}`}>
                         {renderView()}
                     </div>
