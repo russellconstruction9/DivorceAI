@@ -129,41 +129,30 @@ export const getSingleIncidentAnalysis = async (mainReport: Report, allReports: 
             .map(r => `--- SUPPORTING REPORT (ID: ${r.id}, Date: ${new Date(r.createdAt).toLocaleDateString()}) ---\n${r.content}\n--- END SUPPORTING REPORT ---`)
             .join('\n\n');
 
-        const systemInstruction = SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS;
-        const fullPrompt = `${systemInstruction}\n\n${formatUserProfileContext(userProfile)}\n\n## Incident Reports for Analysis:\n\n${mainReportContent}\n\n${otherReportsContent}`;
+        const userPrompt = `${formatUserProfileContext(userProfile)}\n\n## Incident Reports for Analysis:\n\n${mainReportContent}\n\n${otherReportsContent}`;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: fullPrompt,
+            model: 'gemini-2.0-flash-001',
+            contents: userPrompt,
             config: {
-                systemInstruction: systemInstruction,
+                systemInstruction: SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS,
             }
         });
 
         console.log('Raw response from Gemini:', response);
-        console.log('Response candidates:', response.candidates);
         console.log('Response text:', response.text);
-        console.log('Response text type:', typeof response.text);
 
-        let analysisText = '';
-
-        if (response.text) {
-            analysisText = response.text;
-        } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
-            analysisText = response.candidates[0].content.parts[0].text;
-        } else {
-            console.error('Could not extract text from response:', JSON.stringify(response, null, 2));
+        if (!response.text) {
+            console.error('Empty response from Gemini API');
+            console.error('Full response:', JSON.stringify(response, null, 2));
             throw new Error('Received empty response from AI. Please try again.');
         }
 
         const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
-        return { analysis: analysisText, sources: sources };
+        return { analysis: response.text, sources: sources };
     } catch (error: any) {
         console.error("Error generating single incident analysis:", error);
-        if (error.message?.includes('empty response')) {
-            throw error;
-        }
         throw new Error(`Failed to generate behavioral insights: ${error.message || 'Unknown error'}`);
     }
 };
