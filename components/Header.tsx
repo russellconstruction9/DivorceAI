@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { BookOpenIcon, UserCircleIcon, MenuIcon } from './icons';
+import { UserCircleIcon, MenuIcon } from './icons';
+import logoImg from '../assets/logo.png';
 
 interface HeaderProps {
     onMenuClick: () => void;
@@ -35,8 +36,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick, onSignOut 
                             <MenuIcon className="h-6 w-6" />
                         </button>
                         <div className="flex items-center">
-                           <BookOpenIcon className="h-7 w-7 text-blue-900" />
-                           <span className="ml-3 text-xl font-semibold text-gray-900 tracking-tight">CourtLog AI</span>
+                           <img src={logoImg} alt="CustodyX.AI" className="h-9 w-auto" />
                         </div>
                     </div>
                     <div className="flex items-center relative" ref={dropdownRef}>

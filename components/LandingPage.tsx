@@ -1,5 +1,6 @@
 import React from 'react';
 import { SparklesIcon, BookOpenIcon, ScaleIcon, ChartBarIcon, DocumentTextIcon, LightBulbIcon } from './icons';
+import logoImg from '../assets/logo.png';
 
 interface LandingPageProps {
     onGetStarted: () => void;
@@ -12,8 +13,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 items-center justify-between">
                         <div className="flex items-center">
-                            <BookOpenIcon className="h-8 w-8 text-blue-900" />
-                            <span className="ml-3 text-2xl font-bold text-gray-900">CourtLog AI</span>
+                            <img src={logoImg} alt="CustodyX.AI" className="h-10 w-auto" />
                         </div>
                         <button
                             onClick={onGetStarted}
@@ -30,13 +30,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                         <div>
                             <p className="text-blue-900 font-semibold text-sm tracking-wide uppercase mb-4">
-                                CourtLog AI — TRUTH. EVIDENCE. JUSTICE.
+                                CustodyX.AI — TRUTH. EVIDENCE. JUSTICE.
                             </p>
                             <h1 className="text-5xl font-bold text-gray-900 leading-tight mb-6">
                                 The Parent's Advantage in Family Court
                             </h1>
                             <p className="text-xl text-gray-700 leading-relaxed mb-8">
-                                CourtLog AI is an intelligent documentation and evidence system built to help parents protect their rights, their time, and their children. When the system feels stacked against you, CourtLog AI helps you prove the truth — clearly, calmly, and credibly.
+                                CustodyX.AI is an intelligent documentation and evidence system built to help parents protect their rights, their time, and their children. When the system feels stacked against you, CustodyX.AI helps you prove the truth — clearly, calmly, and credibly.
                             </p>
                             <button
                                 onClick={onGetStarted}
@@ -177,8 +177,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center">
-                            <BookOpenIcon className="h-6 w-6 text-blue-900" />
-                            <span className="ml-2 text-lg font-semibold text-gray-900">CourtLog AI</span>
+                            <img src={logoImg} alt="CustodyX.AI" className="h-8 w-auto" />
                         </div>
                         <p className="text-sm text-gray-600">
                             Built to help parents protect their rights and their children.
