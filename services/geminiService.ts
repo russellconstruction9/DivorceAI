@@ -121,27 +121,33 @@ export const getThemeAnalysis = async (reports: Report[], category: string): Pro
 };
 
 export const getSingleIncidentAnalysis = async (mainReport: Report, allReports: Report[], userProfile: UserProfile | null): Promise<{ analysis: string; sources: any[] }> => {
-    const mainReportContent = `--- PRIMARY INCIDENT TO ANALYZE (ID: ${mainReport.id}, Date: ${new Date(mainReport.createdAt).toLocaleDateString()}) ---\n${mainReport.content}\n--- END PRIMARY INCIDENT ---`;
-    
-    const otherReportsContent = allReports
-        .filter(r => r.id !== mainReport.id)
-        .map(r => `--- SUPPORTING REPORT (ID: ${r.id}, Date: ${new Date(r.createdAt).toLocaleDateString()}) ---\n${r.content}\n--- END SUPPORTING REPORT ---`)
-        .join('\n\n');
+    try {
+        const mainReportContent = `--- PRIMARY INCIDENT TO ANALYZE (ID: ${mainReport.id}, Date: ${new Date(mainReport.createdAt).toLocaleDateString()}) ---\n${mainReport.content}\n--- END PRIMARY INCIDENT ---`;
 
-    const systemInstruction = SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS;
-    const fullPrompt = `${systemInstruction}\n\n${formatUserProfileContext(userProfile)}\n\n## Incident Reports for Analysis:\n\n${mainReportContent}\n\n${otherReportsContent}`;
+        const otherReportsContent = allReports
+            .filter(r => r.id !== mainReport.id)
+            .map(r => `--- SUPPORTING REPORT (ID: ${r.id}, Date: ${new Date(r.createdAt).toLocaleDateString()}) ---\n${r.content}\n--- END SUPPORTING REPORT ---`)
+            .join('\n\n');
 
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: fullPrompt,
-        config: {
-            tools: [{googleSearch: {}}],
-        }
-    });
+        const systemInstruction = SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS;
+        const fullPrompt = `${systemInstruction}\n\n${formatUserProfileContext(userProfile)}\n\n## Incident Reports for Analysis:\n\n${mainReportContent}\n\n${otherReportsContent}`;
 
-    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: fullPrompt,
+            config: {
+                tools: [{googleSearch: {}}],
+            }
+        });
 
-    return { analysis: response.text, sources: sources };
+        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        const analysisText = response.text || '';
+
+        return { analysis: analysisText, sources: sources };
+    } catch (error) {
+        console.error("Error generating single incident analysis:", error);
+        throw new Error("Failed to generate behavioral insights. Please try again.");
+    }
 };
 
 

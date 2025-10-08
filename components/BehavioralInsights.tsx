@@ -35,21 +35,29 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
             setAnalysisResult(null);
             try {
                 const result = await getSingleIncidentAnalysis(activeInsightContext, reports, userProfile);
+
+                if (!result || !result.analysis) {
+                    throw new Error('Invalid response from analysis service');
+                }
+
                 setAnalysisResult(result);
 
                 // Parse for the recommended motion
-                const lines = result.analysis.split('\n');
-                const motionLine = lines.find(line => line.includes('Motion to'));
-                if (motionLine) {
-                    const motionMatch = motionLine.match(/^(Motion to [a-zA-Z\s]+)/);
-                    if (motionMatch && motionMatch[1]) {
-                        setRecommendedMotion(motionMatch[1].trim());
+                if (result.analysis) {
+                    const lines = result.analysis.split('\n');
+                    const motionLine = lines.find(line => line.includes('Motion to'));
+                    if (motionLine) {
+                        const motionMatch = motionLine.match(/^(Motion to [a-zA-Z\s]+)/);
+                        if (motionMatch && motionMatch[1]) {
+                            setRecommendedMotion(motionMatch[1].trim());
+                        }
                     }
                 }
 
-            } catch (err) {
-                setError('An error occurred while generating insights.');
-                console.error(err);
+            } catch (err: any) {
+                const errorMessage = err?.message || 'An error occurred while generating insights.';
+                setError(errorMessage);
+                console.error('Behavioral Insights Error:', err);
             } finally {
                 setIsLoading(false);
             }
