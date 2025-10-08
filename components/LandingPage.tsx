@@ -1,6 +1,5 @@
 import React from 'react';
 import { SparklesIcon, BookOpenIcon, ScaleIcon, ChartBarIcon, DocumentTextIcon, LightBulbIcon } from './icons';
-import logoImg from '../assets/logo.png';
 
 interface LandingPageProps {
     onGetStarted: () => void;
@@ -12,8 +11,13 @@ const LandingPage: React.FC<LandingPageProps> = ({ onGetStarted }) => {
             <header className="bg-white border-b border-gray-200 shadow-sm">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 items-center justify-between">
-                        <div className="flex items-center">
-                            <img src={logoImg} alt="CustodyX.AI" className="h-10 w-auto" />
+                        <div className="flex items-center gap-2">
+                            <svg className="h-9 w-9" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="40" height="40" rx="8" fill="#1e3a8a"/>
+                                <path d="M20 8L28 14V26L20 32L12 26V14L20 8Z" fill="#3b82f6" stroke="#60a5fa" strokeWidth="1.5"/>
+                                <circle cx="20" cy="20" r="4" fill="#dbeafe"/>
+                            </svg>
+                            <span className="text-2xl font-bold text-gray-900">CustodyX<span className="text-blue-900">.AI</span></span>
                         </div>
                         <button
                             onClick={onGetStarted}
