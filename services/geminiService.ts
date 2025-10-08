@@ -140,13 +140,25 @@ export const getSingleIncidentAnalysis = async (mainReport: Report, allReports: 
             }
         });
 
+        console.log('Raw response from Gemini:', response);
+        console.log('Response candidates:', response.candidates);
+        console.log('Response text:', response.text);
+
         const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         const analysisText = response.text || '';
 
+        if (!analysisText) {
+            console.error('Empty response text received from Gemini API');
+            throw new Error('Received empty response from AI. Please try again.');
+        }
+
         return { analysis: analysisText, sources: sources };
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error generating single incident analysis:", error);
-        throw new Error("Failed to generate behavioral insights. Please try again.");
+        if (error.message?.includes('empty response')) {
+            throw error;
+        }
+        throw new Error(`Failed to generate behavioral insights: ${error.message || 'Unknown error'}`);
     }
 };
 
