@@ -122,30 +122,44 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userPr
     };
 
     return (
-        <div className="flex flex-col h-full bg-white border border-gray-200 rounded-lg shadow-sm">
-            <div className="p-4 sm:p-6 border-b border-gray-200">
-                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">New Incident Report</h1>
-                <p className="mt-1 text-sm text-gray-600 max-w-3xl">Describe the incident below. The AI assistant will ask clarifying questions to build a neutral, factual record for you.</p>
+        <div className="flex flex-col h-full bg-white rounded-xl shadow-lg border border-gray-200">
+            <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-teal-50 to-cyan-50">
+                <h1 className="text-2xl font-bold text-gray-900">New Incident Report</h1>
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed">Document what happened with help from your AI assistant. Be factual and neutral.</p>
+                <div className="mt-3 flex items-center gap-2 text-xs text-teal-700 bg-white/60 px-3 py-1.5 rounded-full w-fit">
+                    <SparklesIcon className="w-4 h-4" />
+                    <span className="font-medium">AI is analyzing for neutrality and completeness</span>
+                </div>
             </div>
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
-                <div className="space-y-6">
+            <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white">
+                <div className="space-y-4">
                     {messages.map((msg, index) => (
-                        <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                             {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-gray-500"/></div>}
-                            <div className={`max-w-xl px-4 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-900 text-white rounded-br-lg' : 'bg-gray-100 text-gray-900 rounded-bl-lg'}`}>
-                                <p className="text-sm leading-6 whitespace-pre-wrap">{msg.content}</p>
+                        <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''} animate-fadeIn`}>
+                             {msg.role === 'model' && (
+                                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                    <SparklesIcon className="w-5 h-5 text-white"/>
+                                </div>
+                             )}
+                            <div className={`max-w-2xl px-4 py-3 rounded-2xl shadow-sm transition-all hover:shadow-md ${msg.role === 'user' ? 'bg-gradient-to-br from-teal-600 to-cyan-600 text-white' : 'bg-white border border-gray-200 text-gray-900'}`}>
+                                <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                             </div>
-                            {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><UserCircleIcon className="w-6 h-6 text-gray-500"/></div>}
+                            {msg.role === 'user' && (
+                                <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                    <UserCircleIcon className="w-6 h-6 text-gray-600"/>
+                                </div>
+                            )}
                         </div>
                     ))}
                     {isLoading && (
-                         <div className="flex items-start gap-3">
-                           <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-gray-500"/></div>
-                            <div className="max-w-lg px-4 py-3 rounded-2xl bg-gray-100 text-gray-800 rounded-bl-lg">
-                                <div className="flex items-center space-x-1">
-                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-0"></span>
-                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
-                                    <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-300"></span>
+                         <div className="flex items-start gap-3 animate-fadeIn">
+                           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                <SparklesIcon className="w-5 h-5 text-white animate-pulse"/>
+                           </div>
+                            <div className="max-w-lg px-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                                <div className="flex items-center space-x-1.5">
+                                    <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                                    <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                                    <span className="w-2 h-2 bg-teal-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
                                 </div>
                             </div>
                         </div>
@@ -153,13 +167,13 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userPr
                 </div>
                 <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 bg-white border-t border-gray-200 rounded-b-lg">
+            <div className="p-4 bg-white border-t border-gray-100 rounded-b-xl">
                 {messages.length > 2 && (
                     <div className="mb-4 flex justify-end">
                         <button
                             onClick={handleGenerateReport}
                             disabled={isGeneratingReport}
-                            className="flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-green-700 rounded-md shadow-sm hover:bg-green-600 disabled:bg-green-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-150 transform hover:-translate-y-0.5"
+                            className="flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg shadow-md hover:shadow-lg hover:from-teal-700 hover:to-cyan-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all duration-200"
                         >
                             <SparklesIcon className="w-5 h-5 mr-2" />
                             {isGeneratingReport ? 'Generating...' : 'Generate Incident Report'}
@@ -181,18 +195,18 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userPr
                                 handleSendMessage();
                             }
                         }}
-                        placeholder="Describe what happened..."
+                        placeholder="Describe what happened... (be factual and neutral)"
                         rows={1}
-                        className="w-full pl-20 sm:pl-24 pr-12 py-3 text-sm resize-none border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-150"
+                        className="w-full pl-20 sm:pl-24 pr-12 py-3 text-sm resize-none border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 shadow-sm"
                     />
                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center">
                         <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" multiple accept="image/jpeg,image/png,image/webp" />
-                        <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100" aria-label="Attach files">
+                        <button onClick={() => fileInputRef.current?.click()} className="p-2 text-gray-500 hover:text-teal-600 rounded-lg hover:bg-teal-50 transition-colors" aria-label="Attach files">
                              <PaperClipIcon className="w-5 h-5" />
                         </button>
-                         <button 
-                            onClick={() => setIsCalendarOpen(prev => !prev)} 
-                            className="flex items-center gap-1 p-2 text-gray-500 hover:text-blue-600 rounded-full hover:bg-gray-100"
+                         <button
+                            onClick={() => setIsCalendarOpen(prev => !prev)}
+                            className="flex items-center gap-1 p-2 text-gray-500 hover:text-teal-600 rounded-lg hover:bg-teal-50 transition-colors"
                             aria-label="Select incident date"
                         >
                             <CalendarDaysIcon className="w-5 h-5" />
@@ -200,7 +214,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userPr
                         </button>
                     </div>
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <button onClick={() => handleSendMessage()} disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)} className="p-2 text-white bg-blue-900 rounded-full hover:bg-blue-800 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors" aria-label="Send message">
+                        <button onClick={() => handleSendMessage()} disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)} className="p-2.5 text-white bg-gradient-to-r from-teal-600 to-cyan-600 rounded-full hover:from-teal-700 hover:to-cyan-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md" aria-label="Send message">
                              <PaperAirplaneIcon className="w-5 h-5" />
                         </button>
                     </div>

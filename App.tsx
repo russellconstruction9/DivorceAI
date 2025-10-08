@@ -268,16 +268,18 @@ const App: React.FC = () => {
     const isChatView = view === 'new_report' || view === 'assistant';
 
     return (
-        <div className="h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex flex-col">
+        <div className="h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 flex flex-col">
             <Header
                 onMenuClick={() => setIsSidebarOpen(prev => !prev)}
                 onProfileClick={() => handleViewChange('profile')}
                 onSignOut={handleSignOut}
+                onNewReport={() => handleViewChange('new_report')}
+                onNewDocument={() => handleViewChange('documents')}
             />
             <div className="flex flex-1 pt-16 overflow-hidden">
                  {isSidebarOpen && (
                     <div
-                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300"
                         onClick={() => setIsSidebarOpen(false)}
                         aria-hidden="true"
                     ></div>
@@ -288,7 +290,7 @@ const App: React.FC = () => {
                     reportCount={reports.length}
                     isOpen={isSidebarOpen}
                 />
-                <main className={`flex-1 p-6 sm:p-8 lg:p-10 ${isChatView ? 'flex flex-col' : 'overflow-y-auto'}`}>
+                <main className={`flex-1 p-4 sm:p-6 lg:p-8 ${isChatView ? 'flex flex-col' : 'overflow-y-auto'}`}>
                     <div className={`mx-auto max-w-7xl w-full ${isChatView ? 'flex-1 min-h-0' : ''}`}>
                         {renderView()}
                     </div>
