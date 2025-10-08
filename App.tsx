@@ -2,6 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import IncidentTimeline from './components/IncidentTimeline';
+import CalendarView from './components/CalendarView';
 import ChatInterface from './components/ChatInterface';
 import PatternAnalysis from './components/PatternAnalysis';
 import BehavioralInsights from './components/BehavioralInsights';
@@ -11,9 +12,9 @@ import DocumentLibrary from './components/DocumentLibrary';
 import DraftedDocuments from './components/DraftedDocuments';
 import Auth from './components/Auth';
 import LandingPage from './components/LandingPage';
-import { Report, UserProfile as UserProfileType, StoredDocument, DraftedDocument } from './types';
+import { Report, UserProfile as UserProfileType, StoredDocument, DraftedDocument, CalendarEvent } from './types';
 import { supabase } from './services/supabase';
-import { profileService, reportService, documentService, draftedDocumentService } from './services/database';
+import { profileService, reportService, documentService, draftedDocumentService, calendarEventService } from './services/database';
 
 type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'drafted_documents';
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
     const [reports, setReports] = useState<Report[]>([]);
     const [documents, setDocuments] = useState<StoredDocument[]>([]);
     const [draftedDocuments, setDraftedDocuments] = useState<DraftedDocument[]>([]);
+    const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
     const [activeReportContext, setActiveReportContext] = useState<Report | null>(null);
@@ -34,17 +36,19 @@ const App: React.FC = () => {
 
     const loadUserData = useCallback(async () => {
         try {
-            const [profile, allReports, allDocuments, allDrafted] = await Promise.all([
+            const [profile, allReports, allDocuments, allDrafted, allEvents] = await Promise.all([
                 profileService.get(),
                 reportService.getAll(),
                 documentService.getAll(),
                 draftedDocumentService.getAll(),
+                calendarEventService.getAll(),
             ]);
 
             setUserProfile(profile);
             setReports(allReports);
             setDocuments(allDocuments);
             setDraftedDocuments(allDrafted);
+            setCalendarEvents(allEvents);
         } catch (error) {
             console.error('Failed to load user data:', error);
         }
@@ -156,6 +160,24 @@ const App: React.FC = () => {
         }
     };
 
+    const handleCreateCalendarEvent = async (event: Omit<CalendarEvent, 'id' | 'createdAt'>) => {
+        try {
+            const created = await calendarEventService.create(event);
+            setCalendarEvents(prev => [...prev, created]);
+        } catch (error) {
+            console.error('Failed to create calendar event:', error);
+        }
+    };
+
+    const handleDeleteCalendarEvent = async (eventId: string) => {
+        try {
+            await calendarEventService.delete(eventId);
+            setCalendarEvents(prev => prev.filter(e => e.id !== eventId));
+        } catch (error) {
+            console.error('Failed to delete calendar event:', error);
+        }
+    };
+
     const handleViewChange = useCallback((newView: View) => {
         setView(newView);
         setIsSidebarOpen(false);
@@ -239,10 +261,13 @@ const App: React.FC = () => {
                         />;
             case 'timeline':
             default:
-                return <IncidentTimeline
+                return <CalendarView
                             reports={reports}
+                            events={calendarEvents}
                             onDiscussIncident={handleDiscussIncident}
                             onAnalyzeIncident={handleAnalyzeIncident}
+                            onCreateEvent={handleCreateCalendarEvent}
+                            onDeleteEvent={handleDeleteCalendarEvent}
                         />;
         }
     };
