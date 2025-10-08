@@ -8,19 +8,23 @@ import BehavioralInsights from './components/BehavioralInsights';
 import LegalAssistant from './components/LegalAssistant';
 import UserProfile from './components/UserProfile';
 import DocumentLibrary from './components/DocumentLibrary';
+import DraftedDocuments from './components/DraftedDocuments';
 import Auth from './components/Auth';
-import { Report, UserProfile as UserProfileType, StoredDocument } from './types';
+import LandingPage from './components/LandingPage';
+import { Report, UserProfile as UserProfileType, StoredDocument, DraftedDocument } from './types';
 import { supabase } from './services/supabase';
-import { profileService, reportService, documentService } from './services/database';
+import { profileService, reportService, documentService, draftedDocumentService } from './services/database';
 
-type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents';
+type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'drafted_documents';
 
 const App: React.FC = () => {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
     const [isInitializing, setIsInitializing] = useState(true);
+    const [showLanding, setShowLanding] = useState(true);
     const [view, setView] = useState<View>('new_report');
     const [reports, setReports] = useState<Report[]>([]);
     const [documents, setDocuments] = useState<StoredDocument[]>([]);
+    const [draftedDocuments, setDraftedDocuments] = useState<DraftedDocument[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
     const [activeReportContext, setActiveReportContext] = useState<Report | null>(null);
@@ -225,6 +229,9 @@ const App: React.FC = () => {
     }
 
     if (!isAuthenticated) {
+        if (showLanding) {
+            return <LandingPage onGetStarted={() => setShowLanding(false)} />;
+        }
         return <Auth onAuthSuccess={handleAuthSuccess} />;
     }
 

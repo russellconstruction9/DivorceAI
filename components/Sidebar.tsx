@@ -71,6 +71,12 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, reportCount
                         isActive={activeView === 'documents'}
                         onClick={() => onViewChange('documents')}
                     />
+                    <NavItem
+                        icon={<PencilIcon />}
+                        label="Drafted Documents"
+                        isActive={activeView === 'drafted_documents'}
+                        onClick={() => onViewChange('drafted_documents')}
+                    />
                      <NavItem
                         icon={<ScaleIcon />}
                         label="Legal Assistant"
