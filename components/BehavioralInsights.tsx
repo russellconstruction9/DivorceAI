@@ -102,20 +102,28 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center gap-4">
-                 <button
+            <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 rounded-xl border border-teal-100">
+                <button
                     onClick={onBackToTimeline}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors mb-4"
                 >
                     <ArrowLeftIcon className="w-4 h-4" />
                     Back to Timeline
                 </button>
-                <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">
-                    Forensic Analysis for {new Date(activeInsightContext.createdAt).toLocaleDateString()}
-                </h1>
+                <div className="flex items-center gap-3">
+                    <LightBulbIcon className="w-8 h-8 text-teal-600" />
+                    <div>
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            Behavioral Analysis
+                        </h1>
+                        <p className="text-sm text-gray-600 mt-1">
+                            Incident from {new Date(activeInsightContext.createdAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <div className="bg-white p-6 border border-gray-200 rounded-lg shadow-sm">
+            <div className="bg-white p-6 border border-gray-200 rounded-xl shadow-lg">
                 {isLoading ? (
                     <div className="text-center py-16">
                         <p className="text-gray-600">Generating deep analysis, this may take a moment...</p>
@@ -149,10 +157,10 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
                             <button
                                 onClick={handleSaveAnalysis}
                                 disabled={isSaving}
-                                className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+                                className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg hover:from-teal-700 hover:to-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-all shadow-sm hover:shadow-md"
                             >
                                 <ArrowDownTrayIcon className="w-5 h-5" />
-                                {isSaving ? 'Saving...' : 'Save Analysis'}
+                                {isSaving ? 'Saving...' : 'Save to Document Library'}
                             </button>
                             {saveMessage && (
                                 <span className={`text-sm font-medium ${saveMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
@@ -162,7 +170,7 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
                             {recommendedMotion && (
                                  <button
                                      onClick={() => onGenerateDraft(analysisResult.analysis, recommendedMotion)}
-                                     className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                     className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-teal-900 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
                                  >
                                      <ScaleIcon className="w-5 h-5" />
                                      Generate Draft: {recommendedMotion}

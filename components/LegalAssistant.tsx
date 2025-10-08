@@ -233,9 +233,17 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                 motionText={modalContent?.text || ''}
             />
             <div className="space-y-6 flex flex-col h-full">
-                <div>
-                    <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">Legal Assistant</h1>
-                    <p className="mt-2 text-base text-gray-700 max-w-3xl">Ask questions or request to draft legal documents based on your reports. This AI assistant will not provide legal advice.</p>
+                <div className="bg-gradient-to-r from-teal-50 to-cyan-50 p-6 rounded-xl border border-teal-100">
+                    <div className="flex items-center gap-3">
+                        <ScaleIcon className="w-8 h-8 text-teal-600" />
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">Legal Assistant</h1>
+                            <p className="mt-1 text-sm text-gray-600">AI-powered document drafting based on your reports</p>
+                        </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full w-fit border border-amber-200">
+                        <span className="font-medium">⚖️ Not legal advice - For informational purposes only</span>
+                    </div>
                 </div>
 
                  {activeAnalysisContext && (
@@ -282,13 +290,17 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                     </div>
                 </div>
 
-                <div className="flex flex-col flex-1 min-h-0 bg-white border border-gray-200 rounded-lg shadow-sm">
-                    <div className="flex-1 p-6 overflow-y-auto">
-                        <div className="space-y-6">
+                <div className="flex flex-col flex-1 min-h-0 bg-white border border-gray-200 rounded-xl shadow-lg">
+                    <div className="flex-1 p-6 overflow-y-auto bg-gradient-to-b from-gray-50/50 to-white">
+                        <div className="space-y-4">
                             {messages.map((msg, index) => (
-                                <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                                    {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-gray-500"/></div>}
-                                    <div className={`max-w-xl px-4 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-900 text-white rounded-br-lg' : 'bg-gray-100 text-gray-900 rounded-bl-lg'}`}>
+                                <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''} animate-fadeIn`}>
+                                    {msg.role === 'model' && (
+                                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                            <SparklesIcon className="w-5 h-5 text-white"/>
+                                        </div>
+                                    )}
+                                    <div className={`max-w-2xl px-4 py-3 rounded-2xl shadow-sm transition-all hover:shadow-md ${msg.role === 'user' ? 'bg-gradient-to-br from-teal-600 to-cyan-600 text-white' : 'bg-white border border-gray-200 text-gray-900'}`}>
                                         <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-2 prose-li:my-0.5">
                                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                                         </div>
@@ -310,7 +322,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                             <div className="mt-3 space-y-2">
                                                 <button
                                                     onClick={() => setModalContent({ title: msg.document!.title, text: msg.document!.text })}
-                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-blue-900 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-teal-900 bg-teal-100 rounded-lg hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
                                                 >
                                                     <DocumentTextIcon className="w-5 h-5 flex-shrink-0" />
                                                     <span>Preview Document</span>
@@ -329,7 +341,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                                             alert('Failed to save document');
                                                         }
                                                     }}
-                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
                                                 >
                                                     <ArrowDownTrayIcon className="w-5 h-5 flex-shrink-0" />
                                                     <span>Save to Drafted Documents</span>
@@ -341,7 +353,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                                 <button
                                                     onClick={handleRedraftRequest}
                                                     disabled={isLoading}
-                                                    className="flex items-center justify-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-white bg-green-700 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                    className="flex items-center justify-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-white bg-gradient-to-r from-teal-600 to-cyan-600 rounded-lg hover:from-teal-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 shadow-sm transition-all"
                                                 >
                                                     <SparklesIcon className="w-5 h-5 flex-shrink-0" />
                                                     <span>Redraft with Improvements</span>
@@ -349,14 +361,20 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                             </div>
                                         )}
                                     </div>
-                                    {msg.role === 'user' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><UserCircleIcon className="w-6 h-6 text-gray-500"/></div>}
+                                    {msg.role === 'user' && (
+                                        <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                                            <UserCircleIcon className="w-6 h-6 text-gray-600"/>
+                                        </div>
+                                    )}
                                 </div>
                             ))}
                             {isLoading && (
-                                <div className="flex items-start gap-3">
-                                <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-gray-500"/></div>
-                                    <div className="max-w-lg px-4 py-3 rounded-2xl bg-gray-100 text-gray-800 rounded-bl-lg">
-                                        <div className="flex items-center space-x-1">
+                                <div className="flex items-start gap-3 animate-fadeIn">
+                                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-teal-500 to-cyan-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                                        <SparklesIcon className="w-5 h-5 text-white animate-pulse"/>
+                                    </div>
+                                    <div className="max-w-lg px-4 py-3 rounded-2xl bg-white border border-gray-200 shadow-sm">
+                                        <div className="flex items-center space-x-1.5">
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-0"></span>
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></span>
                                             <span className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-300"></span>
@@ -367,18 +385,18 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                         </div>
                         <div ref={messagesEndRef} />
                     </div>
-                    <div className="p-4 bg-white border-t border-gray-200 rounded-b-lg">
+                    <div className="p-4 bg-white border-t border-gray-100 rounded-b-xl">
                         <div className="relative">
                             <input
                                 type="text"
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                                placeholder="Ask a question or request a document..."
-                                className="w-full pl-4 pr-12 py-3 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-150"
+                                placeholder="Ask a question or request to draft a document..."
+                                className="w-full pl-4 pr-12 py-3 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 shadow-sm"
                             />
                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className="p-2 text-white bg-blue-900 rounded-full hover:bg-blue-800 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors" aria-label="Send message">
+                                <button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className="p-2.5 text-white bg-gradient-to-r from-teal-600 to-cyan-600 rounded-full hover:from-teal-700 hover:to-cyan-700 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-sm hover:shadow-md" aria-label="Send message">
                                     <PaperAirplaneIcon className="w-5 h-5" />
                                 </button>
                             </div>
