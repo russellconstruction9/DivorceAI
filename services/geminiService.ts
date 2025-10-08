@@ -235,21 +235,26 @@ export const getInitialLegalAnalysis = async (mainReport: Report, allReports: Re
     
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.0-flash-001',
             contents: fullPrompt,
             config: {
-                tools: [{googleSearch: {}}],
+                systemInstruction: SYSTEM_PROMPT_LEGAL_ANALYSIS_SUGGESTION,
             }
         });
-    
+
         const responseText = response.text;
+
+        if (!responseText) {
+            throw new Error("Received empty response from Legal Analysis API.");
+        }
+
         const firstBrace = responseText.indexOf('{');
         const lastBrace = responseText.lastIndexOf('}');
 
         if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
             throw new Error("No valid JSON object found in the response from Legal Analysis API.");
         }
-        
+
         const jsonText = responseText.substring(firstBrace, lastBrace + 1);
         const parsedResponse = JSON.parse(jsonText);
         const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
