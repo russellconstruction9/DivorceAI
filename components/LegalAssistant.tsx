@@ -321,7 +321,10 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                         {msg.document && (
                                             <div className="mt-3 space-y-2">
                                                 <button
-                                                    onClick={() => setModalContent({ title: msg.document!.title, text: msg.document!.text })}
+                                                    onClick={() => {
+                                                        console.log('Preview clicked:', msg.document);
+                                                        setModalContent({ title: msg.document!.title, text: msg.document!.text });
+                                                    }}
                                                     className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-teal-900 bg-teal-100 rounded-lg hover:bg-teal-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
                                                 >
                                                     <DocumentTextIcon className="w-5 h-5 flex-shrink-0" />
