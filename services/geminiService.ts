@@ -136,21 +136,27 @@ export const getSingleIncidentAnalysis = async (mainReport: Report, allReports: 
             model: 'gemini-2.5-flash',
             contents: fullPrompt,
             config: {
-                tools: [{googleSearch: {}}],
+                systemInstruction: systemInstruction,
             }
         });
 
         console.log('Raw response from Gemini:', response);
         console.log('Response candidates:', response.candidates);
         console.log('Response text:', response.text);
+        console.log('Response text type:', typeof response.text);
 
-        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-        const analysisText = response.text || '';
+        let analysisText = '';
 
-        if (!analysisText) {
-            console.error('Empty response text received from Gemini API');
+        if (response.text) {
+            analysisText = response.text;
+        } else if (response.candidates?.[0]?.content?.parts?.[0]?.text) {
+            analysisText = response.candidates[0].content.parts[0].text;
+        } else {
+            console.error('Could not extract text from response:', JSON.stringify(response, null, 2));
             throw new Error('Received empty response from AI. Please try again.');
         }
+
+        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
         return { analysis: analysisText, sources: sources };
     } catch (error: any) {
