@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Report, UserProfile } from '../types';
+import { Report, UserProfile, DocumentType, DraftedDocument } from '../types';
 import { getSingleIncidentAnalysis } from '../services/geminiService';
-import { LightBulbIcon, ArrowLeftIcon, ScaleIcon } from './icons';
+import { LightBulbIcon, ArrowLeftIcon, ScaleIcon, ArrowDownTrayIcon } from './icons';
 import ReactMarkdown from 'react-markdown';
 
 interface BehavioralInsightsProps {
@@ -10,13 +10,16 @@ interface BehavioralInsightsProps {
     activeInsightContext: Report | null;
     onBackToTimeline: () => void;
     onGenerateDraft: (analysisText: string, motionType: string) => void;
+    onSaveAnalysis: (document: Omit<DraftedDocument, 'id' | 'createdAt'>) => Promise<void>;
 }
 
-const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userProfile, activeInsightContext, onBackToTimeline, onGenerateDraft }) => {
+const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userProfile, activeInsightContext, onBackToTimeline, onGenerateDraft, onSaveAnalysis }) => {
     const [analysisResult, setAnalysisResult] = useState<{ analysis: string; sources: any[] } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [recommendedMotion, setRecommendedMotion] = useState<string | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState<string | null>(null);
     
     useEffect(() => {
         if (!activeInsightContext) {
@@ -54,6 +57,28 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
 
         fetchInsights();
     }, [activeInsightContext, reports, userProfile]);
+
+    const handleSaveAnalysis = async () => {
+        if (!analysisResult || !activeInsightContext) return;
+
+        setIsSaving(true);
+        setSaveMessage(null);
+        try {
+            await onSaveAnalysis({
+                title: `Behavioral Analysis - ${new Date(activeInsightContext.createdAt).toLocaleDateString()}`,
+                content: analysisResult.analysis,
+                type: DocumentType.BEHAVIORAL_ANALYSIS,
+                relatedReportId: activeInsightContext.id,
+            });
+            setSaveMessage('Analysis saved successfully!');
+            setTimeout(() => setSaveMessage(null), 3000);
+        } catch (err) {
+            console.error('Failed to save analysis:', err);
+            setSaveMessage('Failed to save analysis');
+        } finally {
+            setIsSaving(false);
+        }
+    };
     
     if (!activeInsightContext) {
         return (
@@ -112,17 +137,30 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
                             </div>
                         )}
 
-                        {recommendedMotion && (
-                             <div className="mt-6 pt-6 border-t border-gray-200 flex justify-end">
+                        <div className="mt-6 pt-6 border-t border-gray-200 flex justify-between items-center">
+                            <button
+                                onClick={handleSaveAnalysis}
+                                disabled={isSaving}
+                                className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-all duration-200"
+                            >
+                                <ArrowDownTrayIcon className="w-5 h-5" />
+                                {isSaving ? 'Saving...' : 'Save Analysis'}
+                            </button>
+                            {saveMessage && (
+                                <span className={`text-sm font-medium ${saveMessage.includes('success') ? 'text-green-600' : 'text-red-600'}`}>
+                                    {saveMessage}
+                                </span>
+                            )}
+                            {recommendedMotion && (
                                  <button
                                      onClick={() => onGenerateDraft(analysisResult.analysis, recommendedMotion)}
-                                     className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-900 rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all transform hover:-translate-y-0.5"
+                                     className="flex items-center gap-2 px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                                  >
                                      <ScaleIcon className="w-5 h-5" />
                                      Generate Draft: {recommendedMotion}
                                  </button>
-                             </div>
-                        )}
+                            )}
+                        </div>
                     </>
                 ) : null}
             </div>

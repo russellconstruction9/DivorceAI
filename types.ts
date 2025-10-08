@@ -53,3 +53,19 @@ export interface StoredDocument {
     data: string; // base64
     createdAt: string; // ISO string
 }
+
+export enum DocumentType {
+    INCIDENT_REPORT = 'Incident Report',
+    BEHAVIORAL_ANALYSIS = 'Behavioral Analysis',
+    LEGAL_DRAFT = 'Legal Draft',
+    UPLOADED_DOCUMENT = 'Uploaded Document',
+}
+
+export interface DraftedDocument {
+    id: string;
+    title: string;
+    content: string;
+    type: DocumentType;
+    relatedReportId?: string;
+    createdAt: string;
+}

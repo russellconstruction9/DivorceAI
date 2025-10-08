@@ -34,15 +34,17 @@ const App: React.FC = () => {
 
     const loadUserData = useCallback(async () => {
         try {
-            const [profile, allReports, allDocuments] = await Promise.all([
+            const [profile, allReports, allDocuments, allDrafted] = await Promise.all([
                 profileService.get(),
                 reportService.getAll(),
                 documentService.getAll(),
+                draftedDocumentService.getAll(),
             ]);
 
             setUserProfile(profile);
             setReports(allReports);
             setDocuments(allDocuments);
+            setDraftedDocuments(allDrafted);
         } catch (error) {
             console.error('Failed to load user data:', error);
         }
@@ -71,6 +73,7 @@ const App: React.FC = () => {
                 } else {
                     setReports([]);
                     setDocuments([]);
+                    setDraftedDocuments([]);
                     setUserProfile(null);
                 }
             })();
@@ -91,6 +94,7 @@ const App: React.FC = () => {
         setIsAuthenticated(false);
         setReports([]);
         setDocuments([]);
+        setDraftedDocuments([]);
         setUserProfile(null);
         setView('new_report');
     };
@@ -130,6 +134,25 @@ const App: React.FC = () => {
             setDocuments(prev => prev.filter(doc => doc.id !== documentId));
         } catch (error) {
             console.error('Failed to delete document:', error);
+        }
+    };
+
+    const handleSaveDraftedDocument = async (document: Omit<DraftedDocument, 'id' | 'createdAt'>) => {
+        try {
+            const created = await draftedDocumentService.create(document);
+            setDraftedDocuments(prev => [created, ...prev]);
+        } catch (error) {
+            console.error('Failed to save drafted document:', error);
+            throw error;
+        }
+    };
+
+    const handleDeleteDraftedDocument = async (documentId: string) => {
+        try {
+            await draftedDocumentService.delete(documentId);
+            setDraftedDocuments(prev => prev.filter(doc => doc.id !== documentId));
+        } catch (error) {
+            console.error('Failed to delete drafted document:', error);
         }
     };
 
@@ -182,6 +205,7 @@ const App: React.FC = () => {
                             activeInsightContext={activeInsightContext}
                             onBackToTimeline={handleBackToTimeline}
                             onGenerateDraft={handleGenerateDraftFromInsight}
+                            onSaveAnalysis={handleSaveDraftedDocument}
                         />;
             case 'documents':
                 return <DocumentLibrary
@@ -200,6 +224,12 @@ const App: React.FC = () => {
                             clearInitialQuery={() => setInitialLegalQuery(null)}
                             activeAnalysisContext={activeAnalysisContext}
                             clearActiveAnalysisContext={() => setActiveAnalysisContext(null)}
+                            onSaveDraft={handleSaveDraftedDocument}
+                        />;
+            case 'drafted_documents':
+                return <DraftedDocuments
+                            documents={draftedDocuments}
+                            onDeleteDocument={handleDeleteDraftedDocument}
                         />;
             case 'profile':
                 return <UserProfile

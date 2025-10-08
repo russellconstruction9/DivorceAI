@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Report, UserProfile, StoredDocument } from '../types';
+import { Report, UserProfile, StoredDocument, DraftedDocument, DocumentType } from '../types';
 import { getLegalAssistantResponse, getInitialLegalAnalysis, analyzeDocument, redraftDocument } from '../services/geminiService';
-import { PaperAirplaneIcon, SparklesIcon, UserCircleIcon, DocumentTextIcon, LightBulbIcon, XMarkIcon } from './icons';
+import { PaperAirplaneIcon, SparklesIcon, UserCircleIcon, DocumentTextIcon, LightBulbIcon, XMarkIcon, ArrowDownTrayIcon } from './icons';
 import MotionPreviewModal from './MotionPreviewModal';
 import ReactMarkdown from 'react-markdown';
 
@@ -31,6 +31,7 @@ interface LegalAssistantProps {
     clearInitialQuery: () => void;
     activeAnalysisContext: string | null;
     clearActiveAnalysisContext: () => void;
+    onSaveDraft: (document: Omit<DraftedDocument, 'id' | 'createdAt'>) => Promise<void>;
 }
 
 const fileToBase64 = (file: File): Promise<string> =>
@@ -41,7 +42,7 @@ const fileToBase64 = (file: File): Promise<string> =>
         reader.onerror = (error) => reject(error);
     });
 
-const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, userProfile, activeReportContext, clearActiveReportContext, initialQuery, clearInitialQuery, activeAnalysisContext, clearActiveAnalysisContext }) => {
+const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, userProfile, activeReportContext, clearActiveReportContext, initialQuery, clearInitialQuery, activeAnalysisContext, clearActiveAnalysisContext, onSaveDraft }) => {
     const [messages, setMessages] = useState<LegalMessage[]>(() => {
         const initialContent = reports.length > 0
             ? "Hello, you can ask me questions about your logged incidents or uploaded documents. For example: 'When did communication issues occur?' or 'Draft a motion about the missed visitation.'"
@@ -306,13 +307,32 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                             </div>
                                         )}
                                         {msg.document && (
-                                            <div className="mt-3">
+                                            <div className="mt-3 space-y-2">
                                                 <button
                                                     onClick={() => setModalContent({ title: msg.document!.title, text: msg.document!.text })}
                                                     className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-blue-900 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                 >
                                                     <DocumentTextIcon className="w-5 h-5 flex-shrink-0" />
                                                     <span>Preview Document</span>
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        try {
+                                                            await onSaveDraft({
+                                                                title: msg.document!.title,
+                                                                content: msg.document!.text,
+                                                                type: DocumentType.LEGAL_DRAFT,
+                                                                relatedReportId: activeReportContext?.id,
+                                                            });
+                                                            alert('Document saved to Drafted Documents!');
+                                                        } catch (err) {
+                                                            alert('Failed to save document');
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-gray-700 bg-gray-50 border border-gray-200 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+                                                >
+                                                    <ArrowDownTrayIcon className="w-5 h-5 flex-shrink-0" />
+                                                    <span>Save to Drafted Documents</span>
                                                 </button>
                                             </div>
                                         )}

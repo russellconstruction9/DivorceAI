@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { Report, StoredDocument, UserProfile } from '../types';
+import { Report, StoredDocument, UserProfile, DraftedDocument } from '../types';
 
 export interface DbProfile {
   id: string;
@@ -28,6 +28,17 @@ export interface DbDocument {
   name: string;
   mime_type: string;
   data: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DbDraftedDocument {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  type: string;
+  related_report_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -185,6 +196,67 @@ export const documentService = {
   async delete(id: string): Promise<void> {
     const { error } = await supabase
       .from('documents')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+  },
+};
+
+export const draftedDocumentService = {
+  async getAll(): Promise<DraftedDocument[]> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('drafted_documents')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    return (data || []).map((d: DbDraftedDocument) => ({
+      id: d.id,
+      title: d.title,
+      content: d.content,
+      type: d.type,
+      relatedReportId: d.related_report_id || undefined,
+      createdAt: d.created_at,
+    }));
+  },
+
+  async create(document: Omit<DraftedDocument, 'id' | 'createdAt'>): Promise<DraftedDocument> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('drafted_documents')
+      .insert({
+        user_id: user.id,
+        title: document.title,
+        content: document.content,
+        type: document.type,
+        related_report_id: document.relatedReportId || null,
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return {
+      id: data.id,
+      title: data.title,
+      content: data.content,
+      type: data.type,
+      relatedReportId: data.related_report_id || undefined,
+      createdAt: data.created_at,
+    };
+  },
+
+  async delete(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('drafted_documents')
       .delete()
       .eq('id', id);
 
