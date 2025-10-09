@@ -6,22 +6,24 @@ interface IncidentCardProps {
     report: Report;
     onDiscuss: (id: string) => void;
     onAnalyze: (id: string) => void;
-    isSelected: boolean;
-    onSelect: (id: string) => void;
+    isSelected?: boolean;
+    onSelect?: (id: string) => void;
 }
 
-const IncidentCard: React.FC<IncidentCardProps> = ({ report, onDiscuss, onAnalyze, isSelected, onSelect }) => {
+const IncidentCard: React.FC<IncidentCardProps> = ({ report, onDiscuss, onAnalyze, isSelected = false, onSelect }) => {
     return (
         <div className={`relative bg-white border rounded-lg p-6 transition-all duration-200 ${isSelected ? 'border-blue-500 shadow-lg ring-2 ring-blue-500' : 'border-gray-200 hover:shadow-md hover:border-gray-300'}`}>
-            <div className="absolute top-4 right-4">
-                <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => onSelect(report.id)}
-                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                    aria-label={`Select incident from ${new Date(report.createdAt).toLocaleString()}`}
-                />
-            </div>
+            {onSelect && (
+                <div className="absolute top-4 right-4">
+                    <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => onSelect(report.id)}
+                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        aria-label={`Select incident from ${new Date(report.createdAt).toLocaleString()}`}
+                    />
+                </div>
+            )}
             <div className="flex justify-between items-start mb-4 pr-8">
                 <div>
                     <p className="text-xs font-medium text-blue-800 bg-blue-100 px-3 py-1 rounded-full inline-block">{report.category}</p>
