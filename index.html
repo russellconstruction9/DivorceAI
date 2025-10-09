@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CustodyX.AI - The Parent's Advantage in Family Court</title>
+    <title>CustodyX.AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,6 +42,30 @@
         },
       }
     </script>
+    <style>
+      @media print {
+        body * {
+          visibility: hidden;
+        }
+        .printable-area, .printable-area * {
+          visibility: visible;
+        }
+        .printable-area {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: auto;
+          padding: 2rem;
+          margin: 0;
+          border: none;
+          box-shadow: none;
+        }
+        .no-print {
+            display: none;
+        }
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {

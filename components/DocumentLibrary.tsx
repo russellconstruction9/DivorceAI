@@ -19,7 +19,6 @@ const fileToBase64 = (file: File): Promise<string> =>
 const DocumentLibrary: React.FC<DocumentLibraryProps> = ({ documents, onAddDocument, onDeleteDocument }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedDoc, setSelectedDoc] = useState<StoredDocument | null>(null);
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
@@ -52,7 +51,6 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({ documents, onAddDocum
     };
 
     return (
-        <>
         <div className="space-y-8">
             <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">Document Library</h1>
@@ -87,81 +85,28 @@ const DocumentLibrary: React.FC<DocumentLibraryProps> = ({ documents, onAddDocum
                     <ul role="list" className="divide-y divide-gray-200">
                         {documents.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((doc) => (
                             <li key={doc.id} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50">
-                                <div className="flex items-center gap-4 min-w-0 flex-1">
+                                <div className="flex items-center gap-4 min-w-0">
                                     <DocumentTextIcon className="h-8 w-8 text-gray-400 flex-shrink-0" />
-                                    <div className="min-w-0 flex-1">
+                                    <div className="min-w-0">
                                         <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
                                         <p className="text-sm text-gray-500">
                                             Uploaded on {new Date(doc.createdAt).toLocaleDateString()}
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                    <button
-                                        onClick={() => setSelectedDoc(doc)}
-                                        className="px-3 py-1.5 text-sm font-medium text-blue-700 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors"
-                                        aria-label={`View ${doc.name}`}
-                                    >
-                                        View
-                                    </button>
-                                    <button
-                                        onClick={() => onDeleteDocument(doc.id)}
-                                        className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
-                                        aria-label={`Delete ${doc.name}`}
-                                    >
-                                        <TrashIcon className="w-5 h-5" />
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => onDeleteDocument(doc.id)}
+                                    className="p-2 text-gray-400 hover:text-red-600 rounded-full hover:bg-gray-100"
+                                    aria-label={`Delete ${doc.name}`}
+                                >
+                                    <TrashIcon className="w-5 h-5" />
+                                </button>
                             </li>
                         ))}
                     </ul>
                 </div>
             )}
         </div>
-
-        {selectedDoc && (
-            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col">
-                    <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                        <div>
-                            <h2 className="text-2xl font-bold text-gray-900">{selectedDoc.name}</h2>
-                            <time className="text-sm text-gray-500 font-medium">
-                                Uploaded on {new Date(selectedDoc.createdAt).toLocaleString()}
-                            </time>
-                        </div>
-                        <button
-                            onClick={() => setSelectedDoc(null)}
-                            className="text-gray-400 hover:text-gray-600 text-3xl font-light leading-none"
-                        >
-                            ×
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-6">
-                        {selectedDoc.mimeType === 'application/pdf' ? (
-                            <iframe
-                                src={`data:${selectedDoc.mimeType};base64,${selectedDoc.data}`}
-                                className="w-full h-full min-h-[600px] border-0"
-                                title={selectedDoc.name}
-                            />
-                        ) : (
-                            <div className="text-center py-12 text-gray-600">
-                                <p>Preview not available for this file type.</p>
-                                <p className="text-sm mt-2">File type: {selectedDoc.mimeType}</p>
-                            </div>
-                        )}
-                    </div>
-                    <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
-                        <button
-                            onClick={() => setSelectedDoc(null)}
-                            className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
-                        >
-                            Close
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
-        </>
     );
 };
 

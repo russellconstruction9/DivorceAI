@@ -2,10 +2,10 @@ import { GoogleGenAI, Part, Content, Chat } from "@google/genai";
 import { ChatMessage, GeneratedReportData, Report, Theme, UserProfile, LegalAssistantResponse, StoredDocument } from '../types';
 import { SYSTEM_PROMPT_CHAT, SYSTEM_PROMPT_REPORT_GENERATION, SYSTEM_PROMPT_THEME_ANALYSIS } from '../constants';
 import { SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS } from '../constants/behavioralPrompts';
-import { SYSTEM_PROMPT_LEGAL_ASSISTANT, SYSTEM_PROMPT_LEGAL_ANALYSIS_SUGGESTION, SYSTEM_PROMPT_DOCUMENT_ANALYSIS, SYSTEM_PROMPT_DOCUMENT_REDRAFT } from '../constants/legalPrompts';
+import { SYSTEM_PROMPT_LEGAL_ASSISTANT, SYSTEM_PROMPT_LEGAL_ANALYSIS_SUGGESTION, SYSTEM_PROMPT_DOCUMENT_ANALYSIS, SYSTEM_PROMPT_DOCUMENT_REDRAFT, SYSTEM_PROMPT_EVIDENCE_PACKAGE } from '../constants/legalPrompts';
 import { INDIANA_LEGAL_CONTEXT } from "../constants/legalContext";
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const formatUserProfileContext = (profile: UserProfile | null): string => {
     if (!profile || !profile.name) return '';
@@ -121,40 +121,27 @@ export const getThemeAnalysis = async (reports: Report[], category: string): Pro
 };
 
 export const getSingleIncidentAnalysis = async (mainReport: Report, allReports: Report[], userProfile: UserProfile | null): Promise<{ analysis: string; sources: any[] }> => {
-    try {
-        const mainReportContent = `--- PRIMARY INCIDENT TO ANALYZE (ID: ${mainReport.id}, Date: ${new Date(mainReport.createdAt).toLocaleDateString()}) ---\n${mainReport.content}\n--- END PRIMARY INCIDENT ---`;
+    const mainReportContent = `--- PRIMARY INCIDENT TO ANALYZE (ID: ${mainReport.id}, Date: ${new Date(mainReport.createdAt).toLocaleDateString()}) ---\n${mainReport.content}\n--- END PRIMARY INCIDENT ---`;
+    
+    const otherReportsContent = allReports
+        .filter(r => r.id !== mainReport.id)
+        .map(r => `--- SUPPORTING REPORT (ID: ${r.id}, Date: ${new Date(r.createdAt).toLocaleDateString()}) ---\n${r.content}\n--- END SUPPORTING REPORT ---`)
+        .join('\n\n');
 
-        const otherReportsContent = allReports
-            .filter(r => r.id !== mainReport.id)
-            .map(r => `--- SUPPORTING REPORT (ID: ${r.id}, Date: ${new Date(r.createdAt).toLocaleDateString()}) ---\n${r.content}\n--- END SUPPORTING REPORT ---`)
-            .join('\n\n');
+    const systemInstruction = SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS;
+    const fullPrompt = `${systemInstruction}\n\n${formatUserProfileContext(userProfile)}\n\n## Incident Reports for Analysis:\n\n${mainReportContent}\n\n${otherReportsContent}`;
 
-        const userPrompt = `${formatUserProfileContext(userProfile)}\n\n## Incident Reports for Analysis:\n\n${mainReportContent}\n\n${otherReportsContent}`;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash-001',
-            contents: userPrompt,
-            config: {
-                systemInstruction: SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS,
-            }
-        });
-
-        console.log('Raw response from Gemini:', response);
-        console.log('Response text:', response.text);
-
-        if (!response.text) {
-            console.error('Empty response from Gemini API');
-            console.error('Full response:', JSON.stringify(response, null, 2));
-            throw new Error('Received empty response from AI. Please try again.');
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: fullPrompt,
+        config: {
+            tools: [{googleSearch: {}}],
         }
+    });
 
-        const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
 
-        return { analysis: response.text, sources: sources };
-    } catch (error: any) {
-        console.error("Error generating single incident analysis:", error);
-        throw new Error(`Failed to generate behavioral insights: ${error.message || 'Unknown error'}`);
-    }
+    return { analysis: response.text, sources: sources };
 };
 
 
@@ -335,5 +322,53 @@ export const redraftDocument = async (
     } catch (error) {
         console.error("Error redrafting document:", error);
         return "I'm sorry, an unexpected error occurred while redrafting the document. Please try again.";
+    }
+};
+
+export const generateEvidencePackage = async (
+    selectedReports: Report[],
+    selectedDocuments: StoredDocument[],
+    userProfile: UserProfile | null
+): Promise<string> => {
+
+    const reportsString = selectedReports
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map(r => `
+--- INCIDENT REPORT ---
+ID: ${r.id}
+Date of Incident: ${new Date(r.createdAt).toLocaleString()}
+Category: ${r.category}
+Tags: [${r.tags.join(', ')}]
+Legal Context Note: ${r.legalContext || 'None provided.'}
+Report Content:
+${r.content}
+--- END REPORT ---
+`).join('\n\n');
+
+    const documentsString = selectedDocuments.map(d => `
+--- DOCUMENT ---
+Name: ${d.name}
+Date Uploaded: ${new Date(d.createdAt).toLocaleString()}
+--- END DOCUMENT ---
+`).join('\n\n');
+
+    let systemInstruction = SYSTEM_PROMPT_EVIDENCE_PACKAGE.replace('{USER_PROFILE_CONTEXT}', formatUserProfileContext(userProfile));
+    systemInstruction = systemInstruction.replace('{CURRENT_DATE}', new Date().toLocaleDateString());
+
+    const userPrompt = `Please generate the evidence package based on the following data.\n\n## SELECTED INCIDENT REPORTS ##\n\n${reportsString}\n\n## SELECTED DOCUMENTS ##\n\n${documentsString}`;
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: userPrompt,
+            config: {
+                systemInstruction: systemInstruction,
+            }
+        });
+
+        return response.text;
+    } catch (e) {
+        console.error("Failed to generate evidence package:", e);
+        return "Error: Could not generate the evidence package.";
     }
 };

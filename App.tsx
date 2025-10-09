@@ -8,164 +8,93 @@ import BehavioralInsights from './components/BehavioralInsights';
 import LegalAssistant from './components/LegalAssistant';
 import UserProfile from './components/UserProfile';
 import DocumentLibrary from './components/DocumentLibrary';
-import DraftedDocuments from './components/DraftedDocuments';
-import Auth from './components/Auth';
-import LandingPage from './components/LandingPage';
-import { Report, UserProfile as UserProfileType, StoredDocument, DraftedDocument } from './types';
-import { supabase } from './services/supabase';
-import { profileService, reportService, documentService, draftedDocumentService } from './services/database';
+import CalendarView from './components/CalendarView';
+import EvidencePackageBuilder from './components/EvidencePackageBuilder';
+import Dashboard from './components/Dashboard';
+import { Report, UserProfile as UserProfileType, StoredDocument } from './types';
+import { SparklesIcon } from './components/icons';
 
-type View = 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'drafted_documents';
+type View = 'dashboard' | 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'calendar';
 
 const App: React.FC = () => {
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-    const [isInitializing, setIsInitializing] = useState(true);
-    const [showLanding, setShowLanding] = useState(true);
-    const [view, setView] = useState<View>('new_report');
+    const [view, setView] = useState<View>('dashboard');
     const [reports, setReports] = useState<Report[]>([]);
     const [documents, setDocuments] = useState<StoredDocument[]>([]);
-    const [draftedDocuments, setDraftedDocuments] = useState<DraftedDocument[]>([]);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [userProfile, setUserProfile] = useState<UserProfileType | null>(null);
     const [activeReportContext, setActiveReportContext] = useState<Report | null>(null);
     const [activeInsightContext, setActiveInsightContext] = useState<Report | null>(null);
     const [initialLegalQuery, setInitialLegalQuery] = useState<string | null>(null);
     const [activeAnalysisContext, setActiveAnalysisContext] = useState<string | null>(null);
+    const [selectedReportIds, setSelectedReportIds] = useState<Set<string>>(new Set());
+    const [isEvidenceBuilderOpen, setIsEvidenceBuilderOpen] = useState(false);
+    const [newReportDate, setNewReportDate] = useState<Date | null>(null);
 
-    const loadUserData = useCallback(async () => {
+
+    useEffect(() => {
         try {
-            const [profile, allReports, allDocuments, allDrafted] = await Promise.all([
-                profileService.get(),
-                reportService.getAll(),
-                documentService.getAll(),
-                draftedDocumentService.getAll(),
-            ]);
-
-            setUserProfile(profile);
-            setReports(allReports);
-            setDocuments(allDocuments);
-            setDraftedDocuments(allDrafted);
+            const savedProfile = localStorage.getItem('userProfile');
+            if (savedProfile) {
+                setUserProfile(JSON.parse(savedProfile));
+            }
+            const savedDocuments = localStorage.getItem('documents');
+            if (savedDocuments) {
+                setDocuments(JSON.parse(savedDocuments));
+            }
         } catch (error) {
-            console.error('Failed to load user data:', error);
+            console.error("Failed to load user profile or documents from localStorage", error);
         }
     }, []);
 
-    useEffect(() => {
-        const initializeAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setIsAuthenticated(!!session);
-
-            if (session) {
-                await loadUserData();
-            }
-
-            setIsInitializing(false);
-        };
-
-        initializeAuth();
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            (async () => {
-                setIsAuthenticated(!!session);
-
-                if (session) {
-                    await loadUserData();
-                } else {
-                    setReports([]);
-                    setDocuments([]);
-                    setDraftedDocuments([]);
-                    setUserProfile(null);
-                }
-            })();
-        });
-
-        return () => {
-            subscription.unsubscribe();
-        };
-    }, [loadUserData]);
-
-    const handleAuthSuccess = async () => {
-        setIsAuthenticated(true);
-        await loadUserData();
-    };
-
-    const handleSignOut = async () => {
-        await supabase.auth.signOut();
-        setIsAuthenticated(false);
-        setReports([]);
-        setDocuments([]);
-        setDraftedDocuments([]);
-        setUserProfile(null);
-        setView('new_report');
-    };
-
-    const handleProfileSave = async (profile: UserProfileType) => {
+    const handleProfileSave = (profile: UserProfileType) => {
         try {
-            await profileService.upsert(profile);
+            localStorage.setItem('userProfile', JSON.stringify(profile));
             setUserProfile(profile);
-            setView('timeline');
+            setView('dashboard');
         } catch (error) {
-            console.error('Failed to save user profile:', error);
+            console.error("Failed to save user profile to localStorage", error);
         }
     };
 
-    const handleReportGenerated = async (newReport: Report) => {
+    const handleReportGenerated = (newReport: Report) => {
+        setReports(prev => [...prev, newReport]);
+        setNewReportDate(null); // Clear date after generation
+        setView('timeline');
+    };
+    
+    const handleAddDocument = (newDocument: StoredDocument) => {
+        const updatedDocuments = [...documents, newDocument];
+        setDocuments(updatedDocuments);
         try {
-            const createdReport = await reportService.create(newReport);
-            setReports(prev => [createdReport, ...prev]);
-            setView('timeline');
+            localStorage.setItem('documents', JSON.stringify(updatedDocuments));
         } catch (error) {
-            console.error('Failed to save report:', error);
+            console.error("Failed to save documents to localStorage", error);
         }
     };
 
-    const handleAddDocument = async (newDocument: StoredDocument) => {
+    const handleDeleteDocument = (documentId: string) => {
+        const updatedDocuments = documents.filter(doc => doc.id !== documentId);
+        setDocuments(updatedDocuments);
         try {
-            const createdDocument = await documentService.create(newDocument);
-            setDocuments(prev => [createdDocument, ...prev]);
+            localStorage.setItem('documents', JSON.stringify(updatedDocuments));
         } catch (error) {
-            console.error('Failed to save document:', error);
-        }
-    };
-
-    const handleDeleteDocument = async (documentId: string) => {
-        try {
-            await documentService.delete(documentId);
-            setDocuments(prev => prev.filter(doc => doc.id !== documentId));
-        } catch (error) {
-            console.error('Failed to delete document:', error);
-        }
-    };
-
-    const handleSaveDraftedDocument = async (document: Omit<DraftedDocument, 'id' | 'createdAt'>) => {
-        try {
-            const created = await draftedDocumentService.create(document);
-            setDraftedDocuments(prev => [created, ...prev]);
-        } catch (error) {
-            console.error('Failed to save drafted document:', error);
-            throw error;
-        }
-    };
-
-    const handleDeleteDraftedDocument = async (documentId: string) => {
-        try {
-            await draftedDocumentService.delete(documentId);
-            setDraftedDocuments(prev => prev.filter(doc => doc.id !== documentId));
-        } catch (error) {
-            console.error('Failed to delete drafted document:', error);
+            console.error("Failed to save documents to localStorage", error);
         }
     };
 
     const handleViewChange = useCallback((newView: View) => {
+        if (newView !== 'new_report') {
+            setNewReportDate(null);
+        }
         setView(newView);
-        setIsSidebarOpen(false);
+        setIsSidebarOpen(false); // Close sidebar on view change on mobile
     }, []);
 
     const handleDiscussIncident = (reportId: string) => {
         const reportToDiscuss = reports.find(r => r.id === reportId);
         if (reportToDiscuss) {
             setActiveReportContext(reportToDiscuss);
-            setActiveAnalysisContext(null);
+            setActiveAnalysisContext(null); // Clear analysis context
             setView('assistant');
         }
     };
@@ -177,14 +106,14 @@ const App: React.FC = () => {
             setView('insights');
         }
     };
-
+    
     const handleGenerateDraftFromInsight = (analysisText: string, motionType: string) => {
         const query = `Based on the provided behavioral analysis, please draft a "${motionType}".`;
         setActiveAnalysisContext(analysisText);
-        setActiveReportContext(null);
+        setActiveReportContext(null); // Clear report context
         setInitialLegalQuery(query);
         setView('assistant');
-        setActiveInsightContext(null);
+        setActiveInsightContext(null); // clear insight context
     };
 
     const handleBackToTimeline = () => {
@@ -192,30 +121,64 @@ const App: React.FC = () => {
         setActiveInsightContext(null);
     };
 
+    const handleToggleReportSelection = (reportId: string) => {
+        setSelectedReportIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(reportId)) {
+                newSet.delete(reportId);
+            } else {
+                newSet.add(reportId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleCalendarDayClick = (date: Date) => {
+        setNewReportDate(date);
+        setView('new_report');
+    };
+
+    const handleClearSelection = () => {
+        setSelectedReportIds(new Set());
+    };
+
     const renderView = () => {
+        const selectionProps = {
+            selectedReportIds,
+            onToggleReportSelection: handleToggleReportSelection
+        };
         switch (view) {
+            case 'dashboard':
+                return <Dashboard 
+                            userProfile={userProfile}
+                            reports={reports}
+                            onViewChange={handleViewChange}
+                        />;
             case 'new_report':
-                return <ChatInterface onReportGenerated={handleReportGenerated} userProfile={userProfile} />;
+                return <ChatInterface 
+                            onReportGenerated={handleReportGenerated} 
+                            userProfile={userProfile}
+                            initialDate={newReportDate} 
+                        />;
             case 'patterns':
                 return <PatternAnalysis reports={reports} />;
             case 'insights':
-                return <BehavioralInsights
-                            reports={reports}
+                return <BehavioralInsights 
+                            reports={reports} 
                             userProfile={userProfile}
                             activeInsightContext={activeInsightContext}
                             onBackToTimeline={handleBackToTimeline}
                             onGenerateDraft={handleGenerateDraftFromInsight}
-                            onSaveAnalysis={handleSaveDraftedDocument}
                         />;
             case 'documents':
-                return <DocumentLibrary
+                return <DocumentLibrary 
                             documents={documents}
                             onAddDocument={handleAddDocument}
                             onDeleteDocument={handleDeleteDocument}
                         />;
             case 'assistant':
-                return <LegalAssistant
-                            reports={reports}
+                return <LegalAssistant 
+                            reports={reports} 
                             documents={documents}
                             userProfile={userProfile}
                             activeReportContext={activeReportContext}
@@ -224,76 +187,88 @@ const App: React.FC = () => {
                             clearInitialQuery={() => setInitialLegalQuery(null)}
                             activeAnalysisContext={activeAnalysisContext}
                             clearActiveAnalysisContext={() => setActiveAnalysisContext(null)}
-                            onSaveDraft={handleSaveDraftedDocument}
-                        />;
-            case 'drafted_documents':
-                return <DraftedDocuments
-                            documents={draftedDocuments}
-                            onDeleteDocument={handleDeleteDraftedDocument}
                         />;
             case 'profile':
-                return <UserProfile
-                            onSave={handleProfileSave}
-                            onCancel={() => handleViewChange('timeline')}
+                return <UserProfile 
+                            onSave={handleProfileSave} 
+                            onCancel={() => handleViewChange('dashboard')}
                             currentProfile={userProfile}
                         />;
-            case 'timeline':
-            default:
-                return <IncidentTimeline
+            case 'calendar':
+                return <CalendarView 
                             reports={reports}
                             onDiscussIncident={handleDiscussIncident}
                             onAnalyzeIncident={handleAnalyzeIncident}
+                            onDayClick={handleCalendarDayClick}
+                            {...selectionProps}
+                        />;
+            case 'timeline':
+            default:
+                return <IncidentTimeline 
+                            reports={reports} 
+                            onDiscussIncident={handleDiscussIncident}
+                            onAnalyzeIncident={handleAnalyzeIncident}
+                            {...selectionProps}
                         />;
         }
     };
 
-    if (isInitializing) {
-        return (
-            <div className="h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-16 h-16 border-4 border-blue-900 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
-                </div>
-            </div>
-        );
-    }
-
-    if (!isAuthenticated) {
-        if (showLanding) {
-            return <LandingPage onGetStarted={() => setShowLanding(false)} />;
-        }
-        return <Auth onAuthSuccess={handleAuthSuccess} />;
-    }
-
     const isChatView = view === 'new_report' || view === 'assistant';
 
     return (
-        <div className="h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 flex flex-col">
-            <Header
-                onMenuClick={() => setIsSidebarOpen(prev => !prev)}
+        <div className="h-screen bg-gray-50 flex flex-col">
+            <Header 
+                onMenuClick={() => setIsSidebarOpen(prev => !prev)} 
                 onProfileClick={() => handleViewChange('profile')}
-                onSignOut={handleSignOut}
             />
             <div className="flex flex-1 pt-16 overflow-hidden">
                  {isSidebarOpen && (
-                    <div
-                        className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+                    <div 
+                        className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
                         onClick={() => setIsSidebarOpen(false)}
                         aria-hidden="true"
                     ></div>
                 )}
-                <Sidebar
-                    activeView={view}
-                    onViewChange={handleViewChange}
+                <Sidebar 
+                    activeView={view} 
+                    onViewChange={handleViewChange} 
                     reportCount={reports.length}
                     isOpen={isSidebarOpen}
                 />
-                <main className={`flex-1 p-6 sm:p-8 lg:p-10 ${isChatView ? 'flex flex-col' : 'overflow-y-auto'}`}>
+                <main className={`flex-1 p-4 sm:p-6 lg:p-8 ${isChatView ? 'flex flex-col' : 'overflow-y-auto'}`}>
                     <div className={`mx-auto max-w-7xl w-full ${isChatView ? 'flex-1 min-h-0' : ''}`}>
                         {renderView()}
                     </div>
                 </main>
             </div>
+             {selectedReportIds.size > 0 && (view === 'timeline' || view === 'calendar') && (
+                <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 no-print">
+                    <button
+                        onClick={handleClearSelection}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-full shadow-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        Clear Selection ({selectedReportIds.size})
+                    </button>
+                    <button
+                        onClick={() => setIsEvidenceBuilderOpen(true)}
+                        className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white bg-blue-900 rounded-full shadow-lg hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transform hover:scale-105 transition-transform"
+                    >
+                        <SparklesIcon className="w-5 h-5" />
+                        Build Evidence Package
+                    </button>
+                </div>
+            )}
+            <EvidencePackageBuilder
+                isOpen={isEvidenceBuilderOpen}
+                onClose={() => setIsEvidenceBuilderOpen(false)}
+                selectedReports={reports.filter(r => selectedReportIds.has(r.id))}
+                allDocuments={documents}
+                userProfile={userProfile}
+                onPackageCreated={() => {
+                    setIsEvidenceBuilderOpen(false);
+                    setSelectedReportIds(new Set());
+                }}
+            />
         </div>
     );
 };

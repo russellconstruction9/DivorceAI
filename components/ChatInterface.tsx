@@ -7,6 +7,7 @@ import Calendar from './Calendar';
 interface ChatInterfaceProps {
     onReportGenerated: (report: Report) => void;
     userProfile: UserProfile | null;
+    initialDate?: Date | null;
 }
 
 const fileToBase64 = (file: File): Promise<string> =>
@@ -18,7 +19,7 @@ const fileToBase64 = (file: File): Promise<string> =>
     });
 
 
-const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userProfile }) => {
+const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userProfile, initialDate }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([
         { role: 'model', content: "Hello, I'm here to help you document a co-parenting incident. To start, please describe what happened." }
     ]);
@@ -26,7 +27,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userPr
     const [isLoading, setIsLoading] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
     const [uploadedFiles, setUploadedFiles] = useState<{ name: string; type: string; data: string }[]>([]);
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate || new Date());
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
 
@@ -105,7 +106,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReportGenerated, userPr
                 const newReport: Report = {
                     ...reportData,
                     id: `rep_${Date.now()}`,
-                    createdAt: new Date().toISOString(),
+                    createdAt: (selectedDate || new Date()).toISOString(), // Use selected date for report creation
                     images: allImagesFromChat,
                     legalContext: reportData.legalContext || '',
                 };
