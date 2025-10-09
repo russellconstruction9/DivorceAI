@@ -1,20 +1,21 @@
 import React from 'react';
-import { BookOpenIcon, UserCircleIcon, MenuIcon } from './icons';
+import { BookOpenIcon, UserCircleIcon, MenuIcon, ArrowRightOnRectangleIcon } from './icons';
 
 interface HeaderProps {
     onMenuClick: () => void;
     onProfileClick: () => void;
+    onSignOut: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick }) => {
+const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick, onSignOut }) => {
     return (
         <header className="bg-white border-b border-gray-200 fixed top-0 left-0 right-0 z-50 shadow-sm">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="flex h-16 items-center justify-between">
                     <div className="flex items-center">
-                        <button 
-                            onClick={onMenuClick} 
-                            className="mr-2 p-2 rounded-full text-gray-500 hover:bg-gray-100 lg:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500" 
+                        <button
+                            onClick={onMenuClick}
+                            className="mr-2 p-2 rounded-full text-gray-500 hover:bg-gray-100 lg:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             aria-label="Open menu"
                         >
                             <MenuIcon className="h-6 w-6" />
@@ -24,13 +25,20 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick }) => {
                            <span className="ml-3 text-xl font-semibold text-gray-900 tracking-tight">CustodyX.AI</span>
                         </div>
                     </div>
-                    <div className="flex items-center">
-                        <button 
+                    <div className="flex items-center gap-2">
+                        <button
                             onClick={onProfileClick}
                             className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                             aria-label="Open user profile"
                         >
                             <UserCircleIcon className="h-7 w-7" />
+                        </button>
+                        <button
+                            onClick={onSignOut}
+                            className="p-2 rounded-full text-gray-500 hover:bg-red-50 hover:text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 transition-colors"
+                            aria-label="Sign out"
+                        >
+                            <ArrowRightOnRectangleIcon className="h-7 w-7" />
                         </button>
                     </div>
                 </div>
