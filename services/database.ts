@@ -9,11 +9,18 @@ export const profileService = {
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('id', user.id)
       .maybeSingle();
 
     if (error) throw error;
-    return data;
+
+    if (!data) return null;
+
+    return {
+      name: data.name,
+      role: data.role,
+      children: Array.isArray(data.children) ? data.children : []
+    };
   },
 
   async upsert(profile: UserProfile): Promise<void> {
@@ -23,8 +30,11 @@ export const profileService = {
     const { error } = await supabase
       .from('profiles')
       .upsert({
-        user_id: user.id,
-        ...profile
+        id: user.id,
+        name: profile.name,
+        role: profile.role,
+        children: profile.children || [],
+        updated_at: new Date().toISOString()
       });
 
     if (error) throw error;
@@ -43,7 +53,15 @@ export const reportService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    return (data || []).map(row => ({
+      id: row.id,
+      content: row.content,
+      category: row.category,
+      tags: row.tags,
+      legalContext: row.legal_context,
+      createdAt: row.created_at
+    }));
   },
 
   async create(report: Report): Promise<Report> {
@@ -54,13 +72,25 @@ export const reportService = {
       .from('reports')
       .insert({
         user_id: user.id,
-        ...report
+        content: report.content,
+        category: report.category,
+        tags: report.tags || [],
+        legal_context: report.legalContext || '',
+        created_at: report.createdAt
       })
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+
+    return {
+      id: data.id,
+      content: data.content,
+      category: data.category,
+      tags: data.tags,
+      legalContext: data.legal_context,
+      createdAt: data.created_at
+    };
   }
 };
 
@@ -76,7 +106,14 @@ export const documentService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    return (data || []).map(row => ({
+      id: row.id,
+      name: row.name,
+      data: row.data,
+      mimeType: row.mime_type,
+      createdAt: row.created_at
+    }));
   },
 
   async create(document: StoredDocument): Promise<StoredDocument> {
@@ -87,13 +124,22 @@ export const documentService = {
       .from('documents')
       .insert({
         user_id: user.id,
-        ...document
+        name: document.name,
+        data: document.data,
+        mime_type: document.mimeType
       })
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+
+    return {
+      id: data.id,
+      name: data.name,
+      data: data.data,
+      mimeType: data.mime_type,
+      createdAt: data.created_at
+    };
   },
 
   async delete(documentId: string): Promise<void> {
@@ -118,7 +164,14 @@ export const draftedDocumentService = {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+
+    return (data || []).map(row => ({
+      id: row.id,
+      title: row.title,
+      type: row.type,
+      content: row.content,
+      createdAt: row.created_at
+    }));
   },
 
   async create(document: Omit<DraftedDocument, 'id' | 'createdAt'>): Promise<DraftedDocument> {
@@ -137,7 +190,14 @@ export const draftedDocumentService = {
       .single();
 
     if (error) throw error;
-    return data;
+
+    return {
+      id: data.id,
+      title: data.title,
+      type: data.type,
+      content: data.content,
+      createdAt: data.created_at
+    };
   },
 
   async delete(documentId: string): Promise<void> {
