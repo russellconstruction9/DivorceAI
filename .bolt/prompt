@@ -1,0 +1,136 @@
+Create a Professional, Enterprise-Grade UI (Not “Vibe-Coded”)
+🧱 1. Overall Layout & Structure
+
+Use a grid-based layout with consistent spacing (gap-6 or gap-8 minimum).
+
+Avoid centering everything on the page — structure should follow:
+Header → Sidebar → Main Content → Footer.
+
+Maintain consistent padding (p-6) and margins (m-4) across sections.
+
+Use Tailwind CSS or ShadCN/UI as the foundation for consistent design.
+
+🎨 2. Color Palette
+
+Limit color usage to one primary accent, one secondary, and grayscale tones.
+
+Avoid excessive gradients or neon tones.
+
+Use soft neutral backgrounds (bg-gray-50, bg-neutral-100) and dark readable text (text-gray-900).
+
+Example palette:
+
+--background: #f9fafb;
+--foreground: #111827;
+--primary: #2563eb; /* blue-600 */
+--secondary: #6b7280; /* gray-500 */
+
+🖋️ 3. Typography Rules
+
+Use a single clean modern font (Inter, DM Sans, or Manrope).
+
+Define a 3-level hierarchy:
+
+text-2xl font-bold → Headings
+
+text-lg font-medium → Subheadings
+
+text-sm text-gray-600 → Body/secondary text
+
+Maintain consistent line-height and avoid random bold or all caps.
+
+🧩 4. Components & Reusability
+
+Create and reuse common UI components such as:
+
+<PageHeader />
+
+<Card />
+
+<Button />
+
+<SectionContainer />
+
+Do not duplicate component styles inline.
+
+Ensure consistent corner radius (rounded-xl or rounded-2xl) and shadow levels (shadow-sm or shadow-md).
+
+Example:
+
+export const PageHeader = ({ title, subtitle }) => (
+  <div className="mb-6">
+    <h1 className="text-2xl font-semibold">{title}</h1>
+    {subtitle && <p className="text-gray-500">{subtitle}</p>}
+  </div>
+);
+
+⚙️ 5. Buttons & Inputs
+
+Use consistent button sizing and spacing:
+
+<Button className="rounded-xl px-4 py-2 text-sm font-medium">Save</Button>
+
+
+Avoid unnecessary gradients, hover effects, or animations unless subtle and purposeful.
+
+Inputs should have uniform height, border style, and focus state:
+
+<input
+  type="text"
+  className="w-full rounded-lg border border-gray-300 p-2 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+/>
+
+🪞 6. Visual Hierarchy
+
+Each page should include:
+
+A clear headline
+
+A brief supporting description
+
+A primary call-to-action (button) that visually leads the user
+
+Secondary actions in a lighter color or smaller size
+
+Example:
+
+<header className="mb-6">
+  <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+  <p className="text-sm text-gray-500">Overview of system metrics</p>
+</header>
+
+🧠 7. Motion & Transitions
+
+Use Framer Motion for subtle entry/exit animations (no bounce or wobble).
+
+Keep duration short and natural (0.25–0.35s, ease-out).
+
+Example:
+
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.3, ease: "easeOut" }}
+>
+  <Card>Content</Card>
+</motion.div>
+
+📏 8. Spacing Consistency
+
+Use Tailwind spacing scale consistently (4, 6, 8, 10, 12).
+
+Never mix px and rem values randomly.
+
+Maintain balanced white space — not everything needs to fill the viewport.
+
+🧰 9. Tooling Guidelines
+
+Framework: Next.js or React (Vite)
+
+Styling: TailwindCSS + ShadCN/UI
+
+Animations: Framer Motion (minimal use)
+
+Icons: Lucide-react or Heroicons
+
+Fonts: Google Fonts (Inter or Manrope)
