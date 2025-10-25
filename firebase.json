@@ -1,6 +1,7 @@
 {
   "hosting": {
-    "public": ".",
+    "site": "custodyx-54d90-14ed0",
+    "public": "dist",
     "ignore": [
       "firebase.json",
       "**/.*",
