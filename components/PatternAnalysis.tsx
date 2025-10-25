@@ -54,13 +54,13 @@ const PatternAnalysis: React.FC<PatternAnalysisProps> = ({ reports }) => {
 
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">Pattern Analysis</h1>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Pattern Analysis</h1>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {incidentCategories.map(category => (
-                     <div key={category} className={`p-4 rounded-lg border ${selectedCategory === category ? 'bg-blue-100 border-blue-300' : 'bg-white border-gray-200'}`}>
+                     <div key={category} className={`p-4 rounded-lg border bg-white ${selectedCategory === category ? 'border-blue-300 ring-2 ring-blue-200' : 'border-gray-200'}`}>
                         <h3 className="font-semibold text-gray-800">{category}</h3>
-                        <p className="text-2xl font-bold text-blue-900">{categoryCounts[category]}</p>
+                        <p className="text-3xl font-bold text-blue-950">{categoryCounts[category]}</p>
                         <p className="text-xs text-gray-500">Reports</p>
                     </div>
                 ))}
@@ -102,7 +102,7 @@ const PatternAnalysis: React.FC<PatternAnalysisProps> = ({ reports }) => {
                                 <YAxis allowDecimals={false} />
                                 <Tooltip />
                                 <Legend />
-                                <Bar dataKey="value" name="Report Count" fill="#1e3a8a" />
+                                <Bar dataKey="value" name="Report Count" fill="#172554" />
                             </BarChart>
                         </ResponsiveContainer>
                    ) : (

@@ -1,17 +1,88 @@
-import { GoogleGenAI, Part, Content, Chat } from "@google/genai";
-import { ChatMessage, GeneratedReportData, Report, Theme, UserProfile, LegalAssistantResponse, StoredDocument } from '../types';
-import { SYSTEM_PROMPT_CHAT, SYSTEM_PROMPT_REPORT_GENERATION, SYSTEM_PROMPT_THEME_ANALYSIS } from '../constants';
+import { GoogleGenAI, Part, Content, Chat, Type, FunctionDeclaration, Session, LiveServerMessage, Modality, Blob } from "@google/genai";
+import { ChatMessage, GeneratedReportData, Report, Theme, UserProfile, LegalAssistantResponse, StoredDocument, StructuredLegalDocument, View } from '../types';
+import { SYSTEM_PROMPT_CHAT, SYSTEM_PROMPT_REPORT_GENERATION, SYSTEM_PROMPT_THEME_ANALYSIS, SYSTEM_PROMPT_VOICE_AGENT } from '../constants';
 import { SYSTEM_PROMPT_SINGLE_INCIDENT_ANALYSIS } from '../constants/behavioralPrompts';
 import { SYSTEM_PROMPT_LEGAL_ASSISTANT, SYSTEM_PROMPT_LEGAL_ANALYSIS_SUGGESTION, SYSTEM_PROMPT_DOCUMENT_ANALYSIS, SYSTEM_PROMPT_DOCUMENT_REDRAFT, SYSTEM_PROMPT_EVIDENCE_PACKAGE } from '../constants/legalPrompts';
 import { INDIANA_LEGAL_CONTEXT } from "../constants/legalContext";
 
-const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-if (!apiKey) {
-  throw new Error('Missing Gemini API key');
-}
+// Schemas for structured JSON responses
+const reportResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        content: {
+            type: Type.STRING,
+            description: "A detailed, neutral summary of the incident in Markdown format, with specific headings."
+        },
+        category: {
+            type: Type.STRING,
+            description: "The single most appropriate category for the incident."
+        },
+        tags: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.STRING
+            },
+            description: "An array of 3-5 relevant keywords as tags."
+        },
+        legalContext: {
+            type: Type.STRING,
+            description: "An optional, neutral sentence connecting the incident to a principle from Indiana law. Omit if not applicable."
+        }
+    },
+    required: ['content', 'category', 'tags']
+};
 
-const ai = new GoogleGenAI({ apiKey });
+const themeAnalysisSchema = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            name: {
+                type: Type.STRING,
+                description: "The specific, concrete behavioral theme identified."
+            },
+            value: {
+                type: Type.NUMBER,
+                description: "The number of reports that mention this theme."
+            }
+        },
+        required: ['name', 'value']
+    }
+};
+
+const structuredLegalDocumentSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: { type: Type.STRING, description: "The main title of the document." },
+        subtitle: { type: Type.STRING, description: "An optional subtitle." },
+        metadata: {
+            type: Type.OBJECT,
+            properties: {
+                date: { type: Type.STRING, description: "The date in YYYY-MM-DD format." },
+                clientName: { type: Type.STRING, description: "The client's name, if applicable." },
+                caseNumber: { type: Type.STRING, description: "The case number, if applicable." }
+            },
+            required: ['date']
+        },
+        preamble: { type: Type.STRING, description: "The introductory paragraph or preamble." },
+        sections: {
+            type: Type.ARRAY,
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    heading: { type: Type.STRING, description: "The heading of the section." },
+                    body: { type: Type.STRING, description: "The body content of the section, with newlines for paragraphs." }
+                },
+                required: ['heading', 'body']
+            }
+        },
+        closing: { type: Type.STRING, description: "The closing text before signatures." },
+        notes: { type: Type.STRING, description: "Optional notes at the end of the document." }
+    },
+    required: ['title', 'metadata', 'preamble', 'sections', 'closing']
+};
 
 const formatUserProfileContext = (profile: UserProfile | null): string => {
     if (!profile || !profile.name) return '';
@@ -71,25 +142,24 @@ export const generateJsonReport = async (messages: ChatMessage[], userProfile: U
     const systemInstruction = SYSTEM_PROMPT_REPORT_GENERATION.replace('{USER_PROFILE_CONTEXT}', formatUserProfileContext(userProfile));
 
     try {
-        const chat: Chat = ai.chats.create({
+        const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
+            contents: userPrompt,
             config: {
                 systemInstruction: systemInstruction,
                 responseMimeType: "application/json",
+                responseSchema: reportResponseSchema,
             }
         });
 
-        const response = await chat.sendMessage({ message: userPrompt });
-
         const jsonText = response.text.trim();
-        const cleanedJsonText = jsonText.replace(/^```json\n?/, '').replace(/\n?```$/, '');
         
-        if (!cleanedJsonText) {
+        if (!jsonText) {
             console.error("Received empty response from report generation.");
             return null;
         }
 
-        const reportData = JSON.parse(cleanedJsonText);
+        const reportData = JSON.parse(jsonText);
         
         if (reportData.content && reportData.category && reportData.tags) {
             return reportData as GeneratedReportData;
@@ -111,6 +181,7 @@ export const getThemeAnalysis = async (reports: Report[], category: string): Pro
             contents: `${prompt}\n\n## Incident Reports Content\n\n${reportsContent}`,
             config: {
                 responseMimeType: "application/json",
+                responseSchema: themeAnalysisSchema,
             }
         });
         
@@ -158,30 +229,46 @@ export const getLegalAssistantResponse = async (
     userProfile: UserProfile | null,
     analysisContext: string | null
 ): Promise<LegalAssistantResponse & { sources?: any[] }> => {
+    
     const reportsContent = reports.map(r => `--- REPORT (ID: ${r.id}, Date: ${new Date(r.createdAt).toLocaleDateString()}) ---\n${r.content}\n--- END REPORT ---`).join('\n\n');
+    
+    const textDocuments = documents.filter(d => d.mimeType.startsWith('text/'));
+    const binaryDocuments = documents.filter(d => !d.mimeType.startsWith('text/'));
+
+    const textDocumentsContent = textDocuments.length > 0 ? textDocuments
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+        .map(doc => {
+            let contentSummary = '';
+            try {
+                // Correctly decode UTF-8 string from base64
+                const decodedText = decodeURIComponent(escape(atob(doc.data)));
+                contentSummary = `Content Preview: ${decodedText.substring(0, 750)}...`;
+            } catch (e) {
+                contentSummary = 'Content could not be decoded.';
+            }
+            return `--- DOCUMENT ---\nFolder: ${doc.folder}\nName: ${doc.name}\nDate Created: ${new Date(doc.createdAt).toLocaleString()}\n${contentSummary}\n--- END DOCUMENT ---`;
+        }).join('\n\n') : "No text documents available.";
+
+    const binaryDocumentParts: Part[] = binaryDocuments.map(doc => ({
+        inlineData: { data: doc.data, mimeType: doc.mimeType }
+    }));
+        
     const systemInstruction = `${SYSTEM_PROMPT_LEGAL_ASSISTANT}\n${formatUserProfileContext(userProfile)}`;
     
     try {
-        let promptText = `${systemInstruction}\n\n## Incident Reports Available for Query:\n\n${reportsContent}`;
+        let promptText = `${systemInstruction}\n\n## KNOWLEDGE BASE: Incident Reports\n\n${reportsContent}\n\n## KNOWLEDGE BASE: Generated & Text Documents\n\n${textDocumentsContent}`;
 
         if (analysisContext) {
-            promptText += `\n\n## Forensic Behavioral Analysis (Primary Context):\n\n${analysisContext}`;
+            promptText += `\n\n## Forensic Incident Analysis (Primary Context):\n\n${analysisContext}`;
         }
 
         promptText += `\n\n## User's Question:\n\n${query}`;
 
         const textPart: Part = { text: promptText };
 
-        const documentParts: Part[] = documents.map(doc => ({
-            inlineData: {
-                data: doc.data,
-                mimeType: doc.mimeType,
-            }
-        }));
-
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [textPart, ...documentParts] },
+            contents: { parts: [textPart, ...binaryDocumentParts] },
             config: {
                  tools: [{googleSearch: {}}],
             }
@@ -301,7 +388,7 @@ export const redraftDocument = async (
     mimeType: string,
     analysisText: string,
     userProfile: UserProfile | null
-): Promise<string> => {
+): Promise<StructuredLegalDocument | null> => {
     const systemInstruction = `${SYSTEM_PROMPT_DOCUMENT_REDRAFT}\n${formatUserProfileContext(userProfile)}`;
 
     const documentPart = {
@@ -321,21 +408,25 @@ export const redraftDocument = async (
             contents: { parts: [documentPart, textPart] },
             config: {
                 systemInstruction: systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: structuredLegalDocumentSchema,
             }
         });
-
-        return response.text;
+        
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as StructuredLegalDocument;
     } catch (error) {
         console.error("Error redrafting document:", error);
-        return "I'm sorry, an unexpected error occurred while redrafting the document. Please try again.";
+        return null;
     }
 };
 
 export const generateEvidencePackage = async (
     selectedReports: Report[],
     selectedDocuments: StoredDocument[],
-    userProfile: UserProfile | null
-): Promise<string> => {
+    userProfile: UserProfile | null,
+    packageObjective: string,
+): Promise<StructuredLegalDocument | null> => {
 
     const reportsString = selectedReports
         .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -359,7 +450,8 @@ Date Uploaded: ${new Date(d.createdAt).toLocaleString()}
 `).join('\n\n');
 
     let systemInstruction = SYSTEM_PROMPT_EVIDENCE_PACKAGE.replace('{USER_PROFILE_CONTEXT}', formatUserProfileContext(userProfile));
-    systemInstruction = systemInstruction.replace('{CURRENT_DATE}', new Date().toLocaleDateString());
+    systemInstruction = systemInstruction.replace('{CURRENT_DATE}', new Date().toLocaleDateString('en-CA')); // YYYY-MM-DD format
+    systemInstruction = systemInstruction.replace('{PACKAGE_OBJECTIVE}', packageObjective);
 
     const userPrompt = `Please generate the evidence package based on the following data.\n\n## SELECTED INCIDENT REPORTS ##\n\n${reportsString}\n\n## SELECTED DOCUMENTS ##\n\n${documentsString}`;
 
@@ -369,12 +461,119 @@ Date Uploaded: ${new Date(d.createdAt).toLocaleString()}
             contents: userPrompt,
             config: {
                 systemInstruction: systemInstruction,
+                responseMimeType: "application/json",
+                responseSchema: structuredLegalDocumentSchema,
+                tools: [{googleSearch: {}}],
             }
         });
 
-        return response.text;
+        const jsonText = response.text.trim();
+        return JSON.parse(jsonText) as StructuredLegalDocument;
     } catch (e) {
         console.error("Failed to generate evidence package:", e);
-        return "Error: Could not generate the evidence package.";
+        return null;
     }
 };
+
+// --- Agent Service (ai.live) ---
+
+const navigateToViewFunctionDeclaration: FunctionDeclaration = {
+    name: 'navigateToView',
+    parameters: {
+        type: Type.OBJECT,
+        description: 'Navigates the user to a specific view within the application.',
+        properties: {
+            view: {
+                type: Type.STRING,
+                description: `The view to navigate to. Must be one of: 'dashboard', 'timeline', 'new_report', 'patterns', 'insights', 'assistant', 'profile', 'documents', 'calendar'.`,
+            },
+        },
+        required: ['view'],
+    },
+};
+
+export const connectToAgent = (
+    userProfile: UserProfile | null,
+    callbacks: {
+        onOpen: () => void;
+        onMessage: (message: LiveServerMessage) => Promise<void>;
+        onError: (error: ErrorEvent) => void;
+        onClose: (event: CloseEvent) => void;
+    }
+// FIX: The '@google/genai' library exports 'Session', not 'LiveSession'.
+): Promise<Session> => {
+    const systemInstruction = SYSTEM_PROMPT_VOICE_AGENT.replace('{USER_PROFILE_CONTEXT}', formatUserProfileContext(userProfile));
+
+    const sessionPromise = ai.live.connect({
+        model: 'gemini-2.5-flash-native-audio-preview-09-2025',
+        callbacks: {
+            onopen: callbacks.onOpen,
+            onmessage: callbacks.onMessage,
+            onerror: callbacks.onError,
+            onclose: callbacks.onClose,
+        },
+        config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+                voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Zephyr' } },
+            },
+            systemInstruction: systemInstruction,
+            tools: [{ functionDeclarations: [navigateToViewFunctionDeclaration] }, { googleSearch: {} }],
+            outputAudioTranscription: {},
+            inputAudioTranscription: {},
+        },
+    });
+
+    return sessionPromise;
+};
+
+// Audio Utilities
+export function createPcmBlob(data: Float32Array): Blob {
+    const l = data.length;
+    const int16 = new Int16Array(l);
+    for (let i = 0; i < l; i++) {
+        int16[i] = data[i] * 32768;
+    }
+    return {
+        data: encode(new Uint8Array(int16.buffer)),
+        mimeType: 'audio/pcm;rate=16000',
+    };
+}
+
+export function encode(bytes: Uint8Array): string {
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+}
+
+export function decode(base64: string): Uint8Array {
+    const binaryString = atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+}
+
+export async function decodeAudioData(
+    data: Uint8Array,
+    ctx: AudioContext,
+    sampleRate: number,
+    numChannels: number,
+): Promise<AudioBuffer> {
+    const dataInt16 = new Int16Array(data.buffer);
+    const frameCount = dataInt16.length / numChannels;
+    const buffer = ctx.createBuffer(numChannels, frameCount, sampleRate);
+
+    for (let channel = 0; channel < numChannels; channel++) {
+        const channelData = buffer.getChannelData(channel);
+        for (let i = 0; i < frameCount; i++) {
+            channelData[i] = dataInt16[i * numChannels + channel] / 32768.0;
+        }
+    }
+    return buffer;
+}

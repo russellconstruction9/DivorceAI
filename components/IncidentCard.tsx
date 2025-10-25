@@ -1,29 +1,31 @@
 import React from 'react';
-import { Report } from '../types';
+import { Report, SubscriptionTier } from '../types';
 import { ScaleIcon, LightBulbIcon } from './icons';
 
 interface IncidentCardProps {
     report: Report;
     onDiscuss: (id: string) => void;
     onAnalyze: (id: string) => void;
-    isSelected?: boolean;
-    onSelect?: (id: string) => void;
+    isSelected: boolean;
+    onSelect: (id: string) => void;
+    subscriptionTier: SubscriptionTier;
 }
 
-const IncidentCard: React.FC<IncidentCardProps> = ({ report, onDiscuss, onAnalyze, isSelected = false, onSelect }) => {
+const IncidentCard: React.FC<IncidentCardProps> = ({ report, onDiscuss, onAnalyze, isSelected, onSelect, subscriptionTier }) => {
+    const hasPlusAccess = subscriptionTier === 'Plus' || subscriptionTier === 'Pro';
+    const hasProAccess = subscriptionTier === 'Pro';
+
     return (
-        <div className={`relative bg-white border rounded-lg p-6 transition-all duration-200 ${isSelected ? 'border-blue-500 shadow-lg ring-2 ring-blue-500' : 'border-gray-200 hover:shadow-md hover:border-gray-300'}`}>
-            {onSelect && (
-                <div className="absolute top-4 right-4">
-                    <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onSelect(report.id)}
-                        className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                        aria-label={`Select incident from ${new Date(report.createdAt).toLocaleString()}`}
-                    />
-                </div>
-            )}
+        <div className={`relative bg-white border rounded-lg p-6 transition-all duration-200 shadow-sm ${isSelected ? 'border-blue-500 shadow-md ring-2 ring-blue-500/50' : 'border-gray-200 hover:shadow-md hover:border-gray-300'}`}>
+            <div className="absolute top-4 right-4 no-print">
+                <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onSelect(report.id)}
+                    className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    aria-label={`Select incident from ${new Date(report.createdAt).toLocaleString()}`}
+                />
+            </div>
             <div className="flex justify-between items-start mb-4 pr-8">
                 <div>
                     <p className="text-xs font-medium text-blue-800 bg-blue-100 px-3 py-1 rounded-full inline-block">{report.category}</p>
@@ -58,17 +60,21 @@ const IncidentCard: React.FC<IncidentCardProps> = ({ report, onDiscuss, onAnalyz
                     ))}
                 </div>
             )}
-             <div className="mt-6 pt-5 border-t border-gray-200 flex justify-end gap-3">
+             <div className="mt-6 pt-5 border-t border-gray-200 flex justify-end gap-3 no-print">
                  <button
                     onClick={() => onAnalyze(report.id)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-amber-900 bg-amber-100 rounded-md hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 transition-all"
+                    disabled={!hasProAccess}
+                    title={!hasProAccess ? "Requires Pro Plan" : "Generate Deep Analysis"}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-amber-900 bg-amber-100 rounded-md hover:bg-amber-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                     <LightBulbIcon className="w-4 h-4" />
-                    Analyze Behavior
+                    Incident Analysis
                 </button>
                 <button
                     onClick={() => onDiscuss(report.id)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-blue-900 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+                    disabled={!hasPlusAccess}
+                    title={!hasPlusAccess ? "Requires Plus Plan" : "Discuss with AI"}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-semibold text-blue-900 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-blue-500 transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                 >
                     <ScaleIcon className="w-4 h-4" />
                     Discuss with AI

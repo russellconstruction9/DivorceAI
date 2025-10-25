@@ -6,9 +6,10 @@ interface UserProfileProps {
     onSave: (profile: UserProfileType) => void;
     onCancel: () => void;
     currentProfile: UserProfileType | null;
+    isInitialSetup?: boolean;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ onSave, onCancel, currentProfile }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ onSave, onCancel, currentProfile, isInitialSetup }) => {
     const [name, setName] = useState('');
     const [role, setRole] = useState<'Mother' | 'Father' | ''>('');
     const [children, setChildren] = useState<string[]>(['']);
@@ -45,14 +46,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ onSave, onCancel, currentProf
             name,
             role,
             children: children.filter(c => c.trim() !== ''),
+            subscriptionTier: currentProfile?.subscriptionTier || 'Free',
         };
         onSave(profileData);
     };
 
     return (
         <div className="bg-white p-6 sm:p-8 border border-gray-200 rounded-lg shadow-sm max-w-2xl mx-auto">
-            <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">User Profile</h1>
-            <p className="mt-2 text-base text-gray-700">This information helps the AI understand context about who is involved in the incidents.</p>
+             {isInitialSetup ? (
+                <>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Create Your Profile</h1>
+                    <p className="mt-2 text-base text-gray-700">This basic information helps the AI understand the context of your situation. It's stored locally on your device and is required to begin.</p>
+                </>
+            ) : (
+                <>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">User Profile</h1>
+                    <p className="mt-2 text-base text-gray-700">This information helps the AI understand context about who is involved in the incidents.</p>
+                </>
+            )}
 
             <div className="mt-8 space-y-6">
                 <div>
@@ -113,17 +124,19 @@ const UserProfile: React.FC<UserProfileProps> = ({ onSave, onCancel, currentProf
             </div>
 
             <div className="mt-8 pt-5 border-t border-gray-200 flex justify-end gap-3">
-                <button
-                    onClick={onCancel}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                    Cancel
-                </button>
+                {!isInitialSetup && (
+                    <button
+                        onClick={onCancel}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    >
+                        Cancel
+                    </button>
+                )}
                 <button
                     onClick={handleSave}
-                    className="flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-900 rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="flex items-center px-4 py-2 text-sm font-semibold text-white bg-blue-950 rounded-md shadow-sm hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
-                    Save Profile
+                    {isInitialSetup ? 'Save and Continue' : 'Save Profile'}
                 </button>
             </div>
         </div>

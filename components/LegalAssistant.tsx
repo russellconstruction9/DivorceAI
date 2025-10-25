@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Report, UserProfile, StoredDocument } from '../types';
+import { Report, UserProfile, StoredDocument, StructuredLegalDocument, DocumentFolder } from '../types';
 import { getLegalAssistantResponse, getInitialLegalAnalysis, analyzeDocument, redraftDocument } from '../services/geminiService';
 import { PaperAirplaneIcon, SparklesIcon, UserCircleIcon, DocumentTextIcon, LightBulbIcon, XMarkIcon } from './icons';
 import MotionPreviewModal from './MotionPreviewModal';
@@ -10,7 +10,7 @@ interface LegalMessage {
     content: string;
     document?: {
         title: string;
-        text: string;
+        data: StructuredLegalDocument;
     };
     sources?: any[];
 }
@@ -31,6 +31,7 @@ interface LegalAssistantProps {
     clearInitialQuery: () => void;
     activeAnalysisContext: string | null;
     clearActiveAnalysisContext: () => void;
+    onAddDocument: (document: StoredDocument) => void;
 }
 
 const fileToBase64 = (file: File): Promise<string> =>
@@ -41,7 +42,23 @@ const fileToBase64 = (file: File): Promise<string> =>
         reader.onerror = (error) => reject(error);
     });
 
-const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, userProfile, activeReportContext, clearActiveReportContext, initialQuery, clearInitialQuery, activeAnalysisContext, clearActiveAnalysisContext }) => {
+const documentToPlainText = (doc: StructuredLegalDocument | null): string => {
+    if (!doc) return "";
+    let text = `${doc.title}\n\n`;
+    if (doc.subtitle) text += `${doc.subtitle}\n\n`;
+    text += `Date: ${doc.metadata.date}\n`;
+    if(doc.metadata.clientName) text += `Client: ${doc.metadata.clientName}\n`;
+    if(doc.metadata.caseNumber) text += `Case No.: ${doc.metadata.caseNumber}\n\n`;
+    if(doc.preamble) text += `${doc.preamble}\n\n`;
+    doc.sections.forEach(s => {
+        text += `${s.heading}\n\n${s.body}\n\n`;
+    });
+    if(doc.closing) text += `${doc.closing}\n\n`;
+    if(doc.notes) text += `Notes: ${doc.notes}\n`;
+    return text;
+};
+
+const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, userProfile, activeReportContext, clearActiveReportContext, initialQuery, clearInitialQuery, activeAnalysisContext, clearActiveAnalysisContext, onAddDocument }) => {
     const [messages, setMessages] = useState<LegalMessage[]>(() => {
         const initialContent = reports.length > 0
             ? "Hello, you can ask me questions about your logged incidents or uploaded documents. For example: 'When did communication issues occur?' or 'Draft a motion about the missed visitation.'"
@@ -50,13 +67,15 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
     });
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [modalContent, setModalContent] = useState<{ title: string; text: string } | null>(null);
+    const [modalContent, setModalContent] = useState<{ title: string; document: StructuredLegalDocument } | null>(null);
     const [analyzedDocInfo, setAnalyzedDocInfo] = useState<AnalyzedDocInfo | null>(null);
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
+        if (isLoading) return; // Add guard to prevent re-entrant calls
+
         const sendInitialQuery = async (query: string) => {
             const userMessage: LegalMessage = { role: 'user', content: query };
             setMessages(prev => [...prev, userMessage]);
@@ -66,7 +85,19 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                 const response = await getLegalAssistantResponse(reports, documents, query, userProfile, activeAnalysisContext);
                 const modelMessage: LegalMessage = { role: 'model', content: response.content, sources: response.sources };
                 if (response.type === 'document' && response.title && response.documentText) {
-                    modelMessage.document = { title: response.title, text: response.documentText };
+                    modelMessage.document = { title: response.title, data: response.documentText };
+                    // Save document
+                    const plainText = documentToPlainText(response.documentText);
+                    const newDoc: StoredDocument = {
+                        id: `doc_draft_${Date.now()}`,
+                        name: `${response.title}.txt`,
+                        mimeType: 'text/plain',
+                        data: btoa(unescape(encodeURIComponent(plainText))),
+                        createdAt: new Date().toISOString(),
+                        folder: DocumentFolder.DRAFTED_MOTIONS,
+                        structuredData: response.documentText,
+                    };
+                    onAddDocument(newDoc);
                 }
                 setMessages(prev => [...prev, modelMessage]);
             } catch (error) {
@@ -75,6 +106,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
             } finally {
                 setIsLoading(false);
                 clearInitialQuery();
+                clearActiveAnalysisContext();
             }
         };
 
@@ -106,7 +138,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
             sendInitialQuery(initialQuery);
         }
 
-    }, [activeReportContext, reports, documents, userProfile, clearActiveReportContext, initialQuery, clearInitialQuery, activeAnalysisContext]);
+    }, [activeReportContext, reports, documents, userProfile, clearActiveReportContext, initialQuery, clearInitialQuery, activeAnalysisContext, onAddDocument, clearActiveAnalysisContext, isLoading]);
 
 
     const scrollToBottom = () => {
@@ -139,8 +171,20 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
             if (response.type === 'document' && response.title && response.documentText) {
                 modelMessage.document = {
                     title: response.title,
-                    text: response.documentText
+                    data: response.documentText
                 };
+                 // Save document
+                const plainText = documentToPlainText(response.documentText);
+                const newDoc: StoredDocument = {
+                    id: `doc_draft_${Date.now()}`,
+                    name: `${response.title}.txt`,
+                    mimeType: 'text/plain',
+                    data: btoa(unescape(encodeURIComponent(plainText))),
+                    createdAt: new Date().toISOString(),
+                    folder: DocumentFolder.DRAFTED_MOTIONS,
+                    structuredData: response.documentText,
+                };
+                onAddDocument(newDoc);
             }
             
             setMessages(prev => [...prev, modelMessage]);
@@ -204,16 +248,34 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
         setAnalyzedDocInfo(null); // Button should disappear once clicked
 
         try {
-            const redraftedText = await redraftDocument(fileData, mimeType, analysisText, userProfile);
-            const modelMessage: LegalMessage = {
-                role: 'model',
-                content: "I have redrafted the document with the suggested improvements. You can preview the new version.",
-                document: {
-                    title: "DRAFT: Redrafted Document",
-                    text: redraftedText,
-                }
-            };
-            setMessages(prev => [...prev, modelMessage]);
+            const redraftedDocument = await redraftDocument(fileData, mimeType, analysisText, userProfile);
+            if(redraftedDocument){
+                const modelMessage: LegalMessage = {
+                    role: 'model',
+                    content: "I have redrafted the document with the suggested improvements. You can preview the new version.",
+                    document: {
+                        title: "DRAFT: Redrafted Document",
+                        data: redraftedDocument,
+                    }
+                };
+                setMessages(prev => [...prev, modelMessage]);
+
+                 // Save document
+                const plainText = documentToPlainText(redraftedDocument);
+                const newDoc: StoredDocument = {
+                    id: `doc_redraft_${Date.now()}`,
+                    name: `${redraftedDocument.title}.txt`,
+                    mimeType: 'text/plain',
+                    data: btoa(unescape(encodeURIComponent(plainText))),
+                    createdAt: new Date().toISOString(),
+                    folder: DocumentFolder.DRAFTED_MOTIONS,
+                    structuredData: redraftedDocument,
+                };
+                onAddDocument(newDoc);
+
+            } else {
+                 throw new Error("Redrafted document was null");
+            }
         } catch (err) {
             console.error("Error during document redraft:", err);
             const errorMessage: LegalMessage = { role: 'model', content: "Sorry, an error occurred while redrafting your document." };
@@ -229,12 +291,12 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                 isOpen={!!modalContent}
                 onClose={() => setModalContent(null)}
                 title={modalContent?.title || ''}
-                motionText={modalContent?.text || ''}
+                document={modalContent?.document || null}
             />
             <div className="space-y-6 flex flex-col h-full">
                 <div>
-                    <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">Legal Assistant</h1>
-                    <p className="mt-2 text-base text-gray-700 max-w-3xl">Ask questions or request to draft legal documents based on your reports. This AI assistant will not provide legal advice.</p>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Legal Assistant</h1>
+                    <p className="mt-2 text-base text-gray-600 max-w-3xl">Ask questions or request to draft legal documents based on your reports. This AI assistant will not provide legal advice.</p>
                 </div>
 
                  {activeAnalysisContext && (
@@ -242,16 +304,16 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                         <div className="flex items-start gap-3">
                             <LightBulbIcon className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
                             <div>
-                                <h3 className="text-sm font-semibold text-amber-900">Working with Behavioral Analysis Context</h3>
+                                <h3 className="text-sm font-semibold text-amber-900">Working with Deep Analysis Context</h3>
                                 <p className="text-sm text-amber-800 mt-1">
-                                    The AI is using the generated behavioral analysis to inform its responses. This context will be used for all subsequent messages in this session.
+                                    The AI is using the generated deep analysis to inform its responses. This context will be used for all subsequent messages in this session.
                                 </p>
                             </div>
                         </div>
                         <button 
                             onClick={clearActiveAnalysisContext} 
                             className="p-1.5 text-amber-500 hover:text-amber-800 rounded-full hover:bg-amber-100 flex-shrink-0"
-                            aria-label="Clear behavioral analysis context"
+                            aria-label="Clear deep analysis context"
                         >
                             <XMarkIcon className="w-5 h-5" />
                         </button>
@@ -273,7 +335,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                         <button
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isLoading}
-                            className="flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-blue-900 rounded-md shadow-sm hover:bg-blue-800 disabled:bg-blue-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
+                            className="flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-blue-950 rounded-md shadow-sm hover:bg-blue-800 disabled:bg-blue-300 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all"
                         >
                             <DocumentTextIcon className="w-5 h-5 mr-2" />
                             {isLoading ? 'Processing...' : 'Upload & Analyze PDF'}
@@ -287,7 +349,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                             {messages.map((msg, index) => (
                                 <div key={index} className={`flex items-start gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
                                     {msg.role === 'model' && <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><SparklesIcon className="w-5 h-5 text-gray-500"/></div>}
-                                    <div className={`max-w-xl px-4 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-900 text-white rounded-br-lg' : 'bg-gray-100 text-gray-900 rounded-bl-lg'}`}>
+                                    <div className={`max-w-xl px-4 py-3 rounded-2xl ${msg.role === 'user' ? 'bg-blue-950 text-white rounded-br-lg' : 'bg-gray-100 text-gray-900 rounded-bl-lg'}`}>
                                         <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-2 prose-li:my-0.5">
                                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                                         </div>
@@ -308,7 +370,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                         {msg.document && (
                                             <div className="mt-3">
                                                 <button
-                                                    onClick={() => setModalContent({ title: msg.document!.title, text: msg.document!.text })}
+                                                    onClick={() => setModalContent({ title: msg.document!.title, document: msg.document!.data })}
                                                     className="flex items-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-blue-900 bg-blue-100 rounded-md hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                 >
                                                     <DocumentTextIcon className="w-5 h-5 flex-shrink-0" />
@@ -321,7 +383,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                                 <button
                                                     onClick={handleRedraftRequest}
                                                     disabled={isLoading}
-                                                    className="flex items-center justify-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-white bg-green-700 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                                                    className="flex items-center justify-center gap-2 w-full text-left px-3 py-2 text-sm font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                                                 >
                                                     <SparklesIcon className="w-5 h-5 flex-shrink-0" />
                                                     <span>Redraft with Improvements</span>
@@ -358,7 +420,7 @@ const LegalAssistant: React.FC<LegalAssistantProps> = ({ reports, documents, use
                                 className="w-full pl-4 pr-12 py-3 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow duration-150"
                             />
                             <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                                <button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className="p-2 text-white bg-blue-900 rounded-full hover:bg-blue-800 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors" aria-label="Send message">
+                                <button onClick={handleSendMessage} disabled={isLoading || !input.trim()} className="p-2 text-white bg-blue-950 rounded-full hover:bg-blue-800 disabled:bg-blue-300 disabled:cursor-not-allowed transition-colors" aria-label="Send message">
                                     <PaperAirplaneIcon className="w-5 h-5" />
                                 </button>
                             </div>

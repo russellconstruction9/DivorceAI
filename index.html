@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CustodyX.AI</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#172554">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,6 +17,7 @@
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+              serif: ['Times New Roman', 'serif'],
             },
             colors: {
                 blue: {
@@ -44,25 +47,128 @@
     </script>
     <style>
       @media print {
+        /* Hide everything by default */
         body * {
           visibility: hidden;
         }
+
+        /* Show only the printable area and its children */
         .printable-area, .printable-area * {
           visibility: visible;
         }
+
+        /* Position the printable area to take up the whole page */
         .printable-area {
           position: absolute;
           left: 0;
           top: 0;
           width: 100%;
           height: auto;
-          padding: 2rem;
+          padding: 0;
           margin: 0;
           border: none;
           box-shadow: none;
         }
+
         .no-print {
-            display: none;
+          display: none !important;
+        }
+        
+        /* PDF-specific styles from user's script */
+        @page { 
+          size: letter;
+          margin: 1in;
+
+          @bottom-right {
+            content: "Page " counter(page);
+            font-family: "Times New Roman", Times, serif;
+            font-size: 10pt;
+            color: #333;
+          }
+        }
+        html, body { 
+          font-family: "Times New Roman", Times, serif; 
+          color: #000;
+          background-color: #fff !important; /* Ensure white background */
+          counter-reset: page;
+        }
+        .pdf-container {
+          margin: 0; 
+          padding: 0; 
+          line-height: 1.5;
+          font-size: 12pt; 
+          -webkit-font-smoothing: antialiased; 
+        }
+        .pdf-header { 
+          text-align: center; 
+          margin-bottom: 24pt; 
+          border-bottom: 2px solid #000;
+          padding-bottom: 12pt;
+        }
+        .pdf-h1 { 
+          font-size: 16pt !important; 
+          margin-bottom: 6pt; 
+          font-weight: bold;
+          text-transform: uppercase;
+        }
+        .pdf-h2 { 
+          font-size: 13pt !important; 
+          margin-top: 20pt; 
+          margin-bottom: 10pt; 
+          font-weight: bold;
+          text-decoration: underline;
+          text-transform: uppercase;
+        }
+        .pdf-meta { 
+          font-size: 10pt !important; 
+          color: #333; 
+          margin-top: 8pt; 
+        }
+        .pdf-preamble { 
+          margin-bottom: 18pt; 
+          text-align: justify;
+        }
+        .pdf-section { 
+          margin-bottom: 18pt; 
+          page-break-inside: avoid;
+        }
+        .pdf-body-paragraph { 
+          margin: 8pt 0; 
+          text-align: justify; 
+          text-indent: 0.5in;
+          widows: 2;
+          orphans: 2;
+        }
+        .pdf-ul { 
+          margin: 8pt 0 8pt 0.5in; 
+          padding-left: 0;
+          list-style-type: disc;
+        }
+        .pdf-li {
+          margin: 4pt 0;
+          text-align: justify;
+          widows: 2;
+          orphans: 2;
+        }
+        .pdf-signature { 
+          margin-top: 36pt; 
+          page-break-inside: avoid;
+        }
+        .pdf-sig-line { 
+          border-top: 1px solid #000; 
+          width: 300px; 
+          margin-top: 48pt; 
+          display: inline-block;
+        }
+        .pdf-sig-label {
+          margin-top: 4pt;
+          font-size: 10pt !important;
+        }
+        .pdf-notes { 
+          font-size: 9pt !important; 
+          color: #666; 
+          margin-top: 18pt; 
+          font-style: italic;
         }
       }
     </style>
@@ -79,8 +185,21 @@
 }
 </script>
 </head>
-  <body class="bg-gray-50 font-sans text-gray-900">
+  <body class="bg-gray-100 font-sans text-gray-900">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
   </body>
 </html>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Report } from '../types';
+import { Report, SubscriptionTier } from '../types';
 import { BookOpenIcon } from './icons';
 import IncidentCard from './IncidentCard';
 
@@ -7,11 +7,12 @@ interface IncidentTimelineProps {
     reports: Report[];
     onDiscussIncident: (reportId: string) => void;
     onAnalyzeIncident: (reportId: string) => void;
-    selectedReportIds?: Set<string>;
-    onToggleReportSelection?: (reportId: string) => void;
+    selectedReportIds: Set<string>;
+    onToggleReportSelection: (reportId: string) => void;
+    subscriptionTier: SubscriptionTier;
 }
 
-const IncidentTimeline: React.FC<IncidentTimelineProps> = ({ reports, onDiscussIncident, onAnalyzeIncident, selectedReportIds, onToggleReportSelection }) => {
+const IncidentTimeline: React.FC<IncidentTimelineProps> = ({ reports, onDiscussIncident, onAnalyzeIncident, selectedReportIds, onToggleReportSelection, subscriptionTier }) => {
     if (reports.length === 0) {
         return (
             <div className="text-center py-24 bg-white border-2 border-dashed border-gray-300 rounded-lg">
@@ -30,13 +31,14 @@ const IncidentTimeline: React.FC<IncidentTimelineProps> = ({ reports, onDiscussI
                 <p className="mt-2 text-base text-gray-600">A chronological list of all documented incidents. Select incidents to build an evidence package.</p>
             </div>
             {reports.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(report => (
-                <IncidentCard
-                    key={report.id}
-                    report={report}
-                    onDiscuss={onDiscussIncident}
+                <IncidentCard 
+                    key={report.id} 
+                    report={report} 
+                    onDiscuss={onDiscussIncident} 
                     onAnalyze={onAnalyzeIncident}
-                    isSelected={selectedReportIds?.has(report.id) || false}
+                    isSelected={selectedReportIds.has(report.id)}
                     onSelect={onToggleReportSelection}
+                    subscriptionTier={subscriptionTier}
                 />
             ))}
         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Report } from '../types';
+import { Report, SubscriptionTier } from '../types';
 import { ChevronLeftIcon, ChevronRightIcon, CalendarDaysIcon } from './icons';
 import IncidentCard from './IncidentCard';
 
@@ -10,9 +10,10 @@ interface CalendarViewProps {
     selectedReportIds: Set<string>;
     onToggleReportSelection: (reportId: string) => void;
     onDayClick: (date: Date) => void;
+    subscriptionTier: SubscriptionTier;
 }
 
-const CalendarView: React.FC<CalendarViewProps> = ({ reports, onDiscussIncident, onAnalyzeIncident, selectedReportIds, onToggleReportSelection, onDayClick }) => {
+const CalendarView: React.FC<CalendarViewProps> = ({ reports, onDiscussIncident, onAnalyzeIncident, selectedReportIds, onToggleReportSelection, onDayClick, subscriptionTier }) => {
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
@@ -57,16 +58,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ reports, onDiscussIncident,
     
     return (
         <div className="space-y-8">
-            <h1 className="text-3xl font-semibold text-gray-900 tracking-tight">Calendar View</h1>
+            <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Calendar View</h1>
             <div className="bg-white border border-gray-200 rounded-lg shadow-sm p-6">
                 <div className="flex justify-between items-center mb-6">
-                    <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900" aria-label="Previous month">
+                    <button onClick={() => changeMonth(-1)} className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors" aria-label="Previous month">
                         <ChevronLeftIcon className="w-6 h-6" />
                     </button>
                     <div className="text-xl font-semibold text-gray-900">
                         {viewDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
                     </div>
-                    <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900" aria-label="Next month">
+                    <button onClick={() => changeMonth(1)} className="p-2 rounded-full hover:bg-gray-100 text-gray-600 hover:text-gray-900 transition-colors" aria-label="Next month">
                         <ChevronRightIcon className="w-6 h-6" />
                     </button>
                 </div>
@@ -81,21 +82,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ reports, onDiscussIncident,
                         const isSelected = isSameDay(date, selectedDate);
                         const isToday = isSameDay(date, new Date());
 
-                        let dayClasses = "h-24 p-2 border rounded-md flex flex-col transition-colors cursor-pointer ";
-                        dayClasses += isSelected 
-                            ? 'bg-blue-100 border-blue-300' 
-                            : isToday 
-                            ? 'bg-gray-50 border-gray-200' 
-                            : 'border-gray-100';
-
-                        dayClasses += incidentsOnDay 
-                            ? " hover:bg-blue-50" 
-                            : " hover:bg-green-50";
-
                         return (
                             <div 
                                 key={index} 
-                                className={dayClasses} 
+                                className="h-24 p-2 border border-transparent flex flex-col cursor-pointer rounded-lg transition-colors"
                                 onClick={() => {
                                     if (incidentsOnDay) {
                                         setSelectedDate(date);
@@ -104,14 +94,16 @@ const CalendarView: React.FC<CalendarViewProps> = ({ reports, onDiscussIncident,
                                     }
                                 }}
                             >
-                                <span className={`font-semibold ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>{date.getDate()}</span>
-                                {incidentsOnDay && (
-                                    <div className="mt-2 flex-1 overflow-hidden">
-                                        <div className="bg-blue-800 text-white text-xs font-semibold px-2 py-1 rounded">
-                                            {incidentsOnDay.length} Incident{incidentsOnDay.length > 1 ? 's' : ''}
-                                        </div>
-                                    </div>
-                                )}
+                                <div
+                                    className={`relative w-8 h-8 flex items-center justify-center rounded-full ${
+                                        isSelected ? 'bg-blue-950 text-white' : isToday ? 'bg-gray-200 text-gray-900' : 'hover:bg-gray-100'
+                                    }`}
+                                >
+                                    <span className="font-semibold text-sm">{date.getDate()}</span>
+                                    {incidentsOnDay && !isSelected && (
+                                        <div className="absolute bottom-0 right-0 w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
@@ -133,6 +125,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ reports, onDiscussIncident,
                                     onAnalyze={onAnalyzeIncident}
                                     isSelected={selectedReportIds.has(report.id)}
                                     onSelect={onToggleReportSelection}
+                                    subscriptionTier={subscriptionTier}
                                 />
                             ))}
                         </div>

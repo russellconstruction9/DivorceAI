@@ -1,18 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Report, UserProfile } from '../types';
+import { Report, UserProfile, StoredDocument, DocumentFolder } from '../types';
 import { getSingleIncidentAnalysis } from '../services/geminiService';
 import { LightBulbIcon, ArrowLeftIcon, ScaleIcon } from './icons';
 import ReactMarkdown from 'react-markdown';
 
-interface BehavioralInsightsProps {
+interface DeepAnalysisProps {
     reports: Report[];
     userProfile: UserProfile | null;
     activeInsightContext: Report | null;
     onBackToTimeline: () => void;
     onGenerateDraft: (analysisText: string, motionType: string) => void;
+    onAddDocument: (document: StoredDocument) => void;
 }
 
-const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userProfile, activeInsightContext, onBackToTimeline, onGenerateDraft }) => {
+const DeepAnalysis: React.FC<DeepAnalysisProps> = ({ reports, userProfile, activeInsightContext, onBackToTimeline, onGenerateDraft, onAddDocument }) => {
     const [analysisResult, setAnalysisResult] = useState<{ analysis: string; sources: any[] } | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -34,13 +35,29 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
                 const result = await getSingleIncidentAnalysis(activeInsightContext, reports, userProfile);
                 setAnalysisResult(result);
 
+                // Save the analysis to the document library
+                const analysisText = result.analysis;
+                const docName = `Forensic Analysis - ${new Date(activeInsightContext.createdAt).toLocaleDateString()}.md`;
+                const newDoc: StoredDocument = {
+                    id: `doc_analysis_${Date.now()}`,
+                    name: docName,
+                    mimeType: 'text/markdown',
+                    // Correctly encode UTF-8 string to base64
+                    data: btoa(unescape(encodeURIComponent(analysisText))),
+                    createdAt: new Date().toISOString(),
+                    folder: DocumentFolder.FORENSIC_ANALYSES,
+                };
+                onAddDocument(newDoc);
+
                 // Parse for the recommended motion
                 const lines = result.analysis.split('\n');
-                const motionLine = lines.find(line => line.includes('Motion to'));
+                const motionLine = lines.find(line => line.includes('Motion to') || line.includes('Motion for'));
                 if (motionLine) {
-                    const motionMatch = motionLine.match(/^(Motion to [a-zA-Z\s]+)/);
-                    if (motionMatch && motionMatch[1]) {
-                        setRecommendedMotion(motionMatch[1].trim());
+                    // FIX: Updated regex to be more flexible. It captures "Motion to..." or "Motion for..."
+                    // and removes the start-of-line anchor (^) to work within bullet points.
+                    const motionMatch = motionLine.match(/(Motion (to|for) [a-zA-Z\s]+)/);
+                    if (motionMatch && motionMatch[0]) {
+                        setRecommendedMotion(motionMatch[0].trim());
                     }
                 }
 
@@ -53,15 +70,15 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
         };
 
         fetchInsights();
-    }, [activeInsightContext, reports, userProfile]);
+    }, [activeInsightContext, reports, userProfile, onAddDocument]);
     
     if (!activeInsightContext) {
         return (
             <div className="text-center py-24 bg-white border-2 border-dashed border-gray-300 rounded-lg h-full flex flex-col justify-center">
                 <LightBulbIcon className="mx-auto h-16 w-16 text-gray-300" />
-                <h3 className="mt-4 text-xl font-semibold text-gray-900">Behavioral Insights</h3>
+                <h3 className="mt-4 text-xl font-semibold text-gray-900">Deep Analysis</h3>
                 <p className="mt-2 text-base text-gray-500 max-w-md mx-auto">
-                    Select an incident from the "Incident Timeline" and click "Analyze Behavior" to generate a deep analysis.
+                    Select an incident from the "Incident Timeline" and click "Incident Analysis" to generate a deep analysis.
                 </p>
             </div>
         );
@@ -130,4 +147,4 @@ const BehavioralInsights: React.FC<BehavioralInsightsProps> = ({ reports, userPr
     );
 };
 
-export default BehavioralInsights;
+export default DeepAnalysis;
