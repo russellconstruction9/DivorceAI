@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpenIcon, ChartBarIcon, LightBulbIcon, PlusIcon, DocumentTextIcon, ScaleIcon, CalendarDaysIcon, HomeIcon, LockClosedIcon } from './icons';
+import { BookOpenIcon, ChartBarIcon, LightBulbIcon, PlusIcon, DocumentTextIcon, ScaleIcon, CalendarDaysIcon, HomeIcon, LockClosedIcon, ChatBubbleOvalLeftEllipsisIcon } from './icons';
 import { SubscriptionTier, View } from '../types';
 
 
@@ -66,6 +66,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, reportCount
                         label="Incident Timeline"
                         isActive={activeView === 'timeline'}
                         onClick={() => onViewChange('timeline')}
+                    />
+                    <NavItem
+                        icon={<ChatBubbleOvalLeftEllipsisIcon />}
+                        label="Communication Log"
+                        isActive={activeView === 'messaging'}
+                        onClick={() => onViewChange('messaging')}
+                        isLocked={!hasPlusAccess}
                     />
                      <NavItem
                         icon={<CalendarDaysIcon />}

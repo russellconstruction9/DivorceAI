@@ -14,7 +14,8 @@ import Dashboard from './components/Dashboard';
 import LandingPage from './components/LandingPage';
 import AgentChat from './components/AgentChat';
 import UpgradeModal from './components/UpgradeModal';
-import { Report, UserProfile as UserProfileType, StoredDocument, View, IncidentTemplate, SubscriptionTier } from './types';
+import Messaging from './components/Messaging';
+import { Report, UserProfile as UserProfileType, StoredDocument, View, IncidentTemplate, SubscriptionTier, AppMessage } from './types';
 import { SparklesIcon } from './components/icons';
 
 const App: React.FC = () => {
@@ -60,6 +61,16 @@ const App: React.FC = () => {
         }
     });
     
+    const [appMessages, setAppMessages] = useState<AppMessage[]>(() => {
+        try {
+            const savedMessages = localStorage.getItem('appMessages');
+            return savedMessages ? JSON.parse(savedMessages) : [];
+        } catch (error) {
+            console.error("Failed to load messages from localStorage", error);
+            return [];
+        }
+    });
+
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const [isAgentOpen, setIsAgentOpen] = useState(false);
     const [activeReportContext, setActiveReportContext] = useState<Report | null>(null);
@@ -95,6 +106,14 @@ const App: React.FC = () => {
             console.error("Failed to save incident templates to localStorage", error);
         }
     }, [incidentTemplates]);
+    
+    useEffect(() => {
+        try {
+            localStorage.setItem('appMessages', JSON.stringify(appMessages));
+        } catch (error) {
+            console.error("Failed to save messages to localStorage", error);
+        }
+    }, [appMessages]);
 
     const handleProfileSave = (profile: UserProfileType) => {
         try {
@@ -111,6 +130,10 @@ const App: React.FC = () => {
         setNewReportDate(null); // Clear date after generation
     };
     
+    const handleAddMessage = useCallback((message: AppMessage) => {
+        setAppMessages(prev => [...prev, message].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()));
+    }, []);
+
     const handleAddDocument = useCallback((newDocument: StoredDocument) => {
         setDocuments(prevDocuments => {
             const updatedDocuments = [...prevDocuments, newDocument];
@@ -149,7 +172,7 @@ const App: React.FC = () => {
         const featureTiers: Record<View, SubscriptionTier> = {
             'dashboard': 'Free', 'timeline': 'Free', 'new_report': 'Free',
             'calendar': 'Free', 'profile': 'Free',
-            'patterns': 'Plus', 'documents': 'Plus', 'assistant': 'Plus',
+            'patterns': 'Plus', 'documents': 'Plus', 'assistant': 'Plus', 'messaging': 'Plus',
             'insights': 'Pro',
         };
         
@@ -171,6 +194,7 @@ const App: React.FC = () => {
                 'patterns': 'Pattern Analysis',
                 'documents': 'Document Library',
                 'assistant': 'AI Legal Assistant',
+                'messaging': 'Communication Log',
                 'insights': 'Deep Analysis',
             };
             setUpgradeModalState({ isOpen: true, featureName: featureNameMap[newView] });
@@ -327,6 +351,12 @@ const App: React.FC = () => {
                             onDayClick={handleCalendarDayClick}
                             {...selectionProps}
                         />;
+            case 'messaging':
+                return <Messaging
+                    messages={appMessages}
+                    onAddMessage={handleAddMessage}
+                    userProfile={userProfile}
+                />;
             case 'timeline':
             default:
                 return <IncidentTimeline 
@@ -370,7 +400,7 @@ const App: React.FC = () => {
         );
     }
 
-    const isChatView = view === 'new_report' || view === 'assistant';
+    const isChatView = view === 'new_report' || view === 'assistant' || view === 'messaging';
     const subscriptionTier = userProfile?.subscriptionTier || 'Free';
 
     return (

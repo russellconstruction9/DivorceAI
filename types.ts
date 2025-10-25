@@ -92,4 +92,11 @@ export interface IncidentTemplate {
   legalContext?: string;
 }
 
-export type View = 'dashboard' | 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'calendar';
+export interface AppMessage {
+    id: string;
+    sender: 'user' | 'otherParent';
+    text: string;
+    timestamp: string; // ISO string
+}
+
+export type View = 'dashboard' | 'timeline' | 'new_report' | 'patterns' | 'insights' | 'assistant' | 'profile' | 'documents' | 'calendar' | 'messaging';
